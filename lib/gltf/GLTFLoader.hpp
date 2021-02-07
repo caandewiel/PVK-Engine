@@ -11,6 +11,13 @@
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define EXTENSION_GLB ".glb"
+#define FIELD_VERTEX_POSITION "POSITION"
+#define FIELD_VERTEX_NORMAL "NORMAL"
+#define FIELD_VERTEX_COLOR_0 "COLOR_0"
+#define FIELD_VERTEX_TEXCOORD_0 "TEXCOORD_0"
+#define FIELD_VERTEX_TEXCOORD_1 "TEXCOORD_1"
+#define FIELD_VERTEX_JOINTS_0 "JOINTS_0"
+#define FIELD_VERTEX_WEIGHTS_0 "WEIGHTS_0"
 
 #include <cstdio>
 #include <string>
@@ -59,76 +66,6 @@ namespace pvk {
                                  uint32_t materialIndex);
 
     private:
-        static const float *loadVertexPositionBuffer(const tinygltf::Model &model,
-                                                     const tinygltf::Primitive &primitive);
-
-        static const float *loadVertexNormalBuffer(const tinygltf::Model &model,
-                                                   const tinygltf::Primitive &primitive);
-
-        static const float *loadVertexColorBuffer(const tinygltf::Model &model,
-                                                  const tinygltf::Primitive &primitive);
-
-        static const float *loadVertexUV0Buffer(const tinygltf::Model &model,
-                                                const tinygltf::Primitive &primitive);
-
-        static const float *loadVertexUV1Buffer(const tinygltf::Model &model,
-                                                const tinygltf::Primitive &primitive);
-
-        static const uint8_t *loadVertexJointBuffer(const tinygltf::Model &model,
-                                                     const tinygltf::Primitive &primitive);
-
-        static const float *loadVertexWeightBuffer(const tinygltf::Model &model,
-                                                   const tinygltf::Primitive &primitive);
-
-        static int getVertexPositionByteStride(const tinygltf::Model &model,
-                                               const tinygltf::Primitive &primitive);
-
-        static int getVertexNormalByteStride(const tinygltf::Model &model,
-                                             const tinygltf::Primitive &primitive);
-
-        static int getVertexJointByteStride(const tinygltf::Model &model,
-                                            const tinygltf::Primitive &primitive,
-                                            const uint8_t *&buffer);
-
-        static int getVertexWeightByteStride(const tinygltf::Model &model,
-                                             const tinygltf::Primitive &primitive);
-
-        static int getVertexColorType(const tinygltf::Model &model,
-                                      const tinygltf::Primitive &primitive);
-
-        static void loadVertexPosition(Vertex &vertex,
-                                       const float *bufferPosition,
-                                       const int &positionByteStride,
-                                       const size_t &index);
-
-        static void loadVertexNormal(Vertex &vertex,
-                                     const float *bufferNormal,
-                                     const int &normalByteStride,
-                                     const size_t &index);
-
-        static void loadVertexUV0(Vertex &vertex,
-                                  const float *bufferUV0,
-                                  const size_t &index);
-
-        static void loadVertexUV1(Vertex &vertex,
-                                  const float *bufferUV1,
-                                  const size_t &index);
-
-        static void loadVertexJoint(Vertex &vertex,
-                                    const uint8_t *bufferJoint,
-                                    const int &jointByteStride,
-                                    const size_t &index);
-
-        static void loadVertexWeight(Vertex &vertex,
-                                     const float *bufferWeight,
-                                     const int &weightByteStride,
-                                     const size_t &index);
-
-        static void loadVertexColor(Vertex &vertex,
-                                    const float *bufferColor,
-                                    const int &type,
-                                    const size_t &index);
-
         static void loadIndices(std::vector<uint32_t> &indices,
                                 tinygltf::Model &model,
                                 tinygltf::Primitive &primitive,
@@ -136,6 +73,41 @@ namespace pvk {
 
         static std::vector<gltf::Animation *> loadAnimations(tinygltf::Model &model,
                                                              std::map<uint32_t, gltf::Node *> &nodeLookup);
+
+        static void loadVertexPosition(const tinygltf::Model &model,
+                                       const tinygltf::Primitive &primitive,
+                                       Vertex &vertex,
+                                       uint32_t index);
+
+        static void loadVertexNormal(const tinygltf::Model &model,
+                                     const tinygltf::Primitive &primitive,
+                                     Vertex &vertex,
+                                     uint32_t index);
+
+        static void loadVertexColor(const tinygltf::Model &model,
+                                    const tinygltf::Primitive &primitive,
+                                    Vertex &vertex,
+                                    uint32_t index);
+
+        static void loadVertexUV0(const tinygltf::Model &model,
+                           const tinygltf::Primitive &primitive,
+                           Vertex &vertex,
+                           uint32_t index);
+
+        static void loadVertexUV1(const tinygltf::Model &model,
+                                  const tinygltf::Primitive &primitive,
+                                  Vertex &vertex,
+                                  uint32_t index);
+
+        static void loadVertexJoints(const tinygltf::Model &model,
+                                     const tinygltf::Primitive &primitive,
+                                     Vertex &vertex,
+                                     uint32_t index);
+
+        static void loadVertexWeights(const tinygltf::Model &model,
+                                      const tinygltf::Primitive &primitive,
+                                      Vertex &vertex,
+                                      uint32_t index);
     };
 }
 

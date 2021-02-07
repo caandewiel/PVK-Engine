@@ -59,7 +59,7 @@ namespace pvk {
 
     std::vector<gltf::Node *> GLTFLoader::loadNodes(tinygltf::Model &model,
                                                     vk::Queue &graphicsQueue,
-                                                    gltf::Object* &object
+                                                    gltf::Object *&object
     ) {
         const auto &scene = model.scenes[model.defaultScene];
 
@@ -138,31 +138,17 @@ namespace pvk {
 
             auto *resultPrimitive = new gltf::Primitive();
 
-            const float *bufferPosition = GLTFLoader::loadVertexPositionBuffer(model, primitive);
-            const float *bufferNormal = GLTFLoader::loadVertexNormalBuffer(model, primitive);
-            const float *bufferColor = GLTFLoader::loadVertexColorBuffer(model, primitive);
-            const float *bufferUV0 = GLTFLoader::loadVertexUV0Buffer(model, primitive);
-            const float *bufferUV1 = GLTFLoader::loadVertexUV1Buffer(model, primitive);
-            const uint8_t *bufferJoint = GLTFLoader::loadVertexJointBuffer(model, primitive);
-            const float *bufferWeight = GLTFLoader::loadVertexWeightBuffer(model, primitive);
-
-            const int positionByteStride = GLTFLoader::getVertexPositionByteStride(model, primitive);
-            const int normalByteStride = GLTFLoader::getVertexNormalByteStride(model, primitive);
-            const int jointByteStride = GLTFLoader::getVertexJointByteStride(model, primitive, bufferJoint);
-            const int weightByteStride = GLTFLoader::getVertexWeightByteStride(model, primitive);
-            const int colorType = GLTFLoader::getVertexColorType(model, primitive);
-
             for (size_t index = 0;
                  index < model.accessors[primitive.attributes.find("POSITION")->second].count; index++) {
                 Vertex vertex{};
 
-                GLTFLoader::loadVertexPosition(vertex, bufferPosition, positionByteStride, index);
-                GLTFLoader::loadVertexNormal(vertex, bufferNormal, normalByteStride, index);
-                GLTFLoader::loadVertexUV0(vertex, bufferUV0, index);
-                GLTFLoader::loadVertexUV1(vertex, bufferUV1, index);
-                GLTFLoader::loadVertexJoint(vertex, bufferJoint, jointByteStride, index);
-                GLTFLoader::loadVertexWeight(vertex, bufferWeight, weightByteStride, index);
-                GLTFLoader::loadVertexColor(vertex, bufferColor, colorType, index);
+                GLTFLoader::loadVertexPosition(model, primitive, vertex, index);
+                GLTFLoader::loadVertexNormal(model, primitive, vertex, index);
+                GLTFLoader::loadVertexUV0(model, primitive, vertex, index);
+                GLTFLoader::loadVertexUV1(model, primitive, vertex, index);
+                GLTFLoader::loadVertexJoints(model, primitive, vertex, index);
+                GLTFLoader::loadVertexWeights(model, primitive, vertex, index);
+                GLTFLoader::loadVertexColor(model, primitive, vertex, index);
 
                 object->vertices.push_back(vertex);
             }
@@ -210,236 +196,248 @@ namespace pvk {
         return resultNode;
     }
 
-    const float *GLTFLoader::loadVertexPositionBuffer(const tinygltf::Model &model,
-                                                      const tinygltf::Primitive &primitive) {
-        assert(primitive.attributes.find("POSITION") != primitive.attributes.end());
+    void GLTFLoader::loadVertexPosition(const tinygltf::Model &model,
+                                        const tinygltf::Primitive &primitive,
+                                        Vertex &vertex,
+                                        const uint32_t index) {
+        // The position attribute is mandatory.
+        const auto &positionAccessor = model.accessors[primitive.attributes.find(FIELD_VERTEX_POSITION)->second];
+        const auto &positionView = model.bufferViews[positionAccessor.bufferView];
 
-        const tinygltf::Accessor &positionAccessor = model.accessors[primitive.attributes.find("POSITION")->second];
-        const tinygltf::BufferView &positionView = model.bufferViews[positionAccessor.bufferView];
-
-        return reinterpret_cast<const float *>(&(model.buffers[positionView.buffer].data[positionAccessor.byteOffset +
-                                                                                         positionView.byteOffset]));
-    }
-
-    const float *GLTFLoader::loadVertexNormalBuffer(const tinygltf::Model &model,
-                                                    const tinygltf::Primitive &primitive) {
-        if (primitive.attributes.find("NORMAL") != primitive.attributes.end()) {
-            const tinygltf::Accessor &normalAccessor = model.accessors[primitive.attributes.find("NORMAL")->second];
-            const tinygltf::BufferView &normalView = model.bufferViews[normalAccessor.bufferView];
-
-            return reinterpret_cast<const float *>(&(model.buffers[normalView.buffer].data[normalAccessor.byteOffset +
-                                                                                           normalView.byteOffset]));
-        } else {
-            return nullptr;
-        }
-    }
-
-    const float *GLTFLoader::loadVertexColorBuffer(const tinygltf::Model &model,
-                                                   const tinygltf::Primitive &primitive) {
-        if (primitive.attributes.find("COLOR_0") != primitive.attributes.end()) {
-            const tinygltf::Accessor &colorAccessor = model.accessors[primitive.attributes.find("COLOR_0")->second];
-            const tinygltf::BufferView &colorView = model.bufferViews[colorAccessor.bufferView];
-
-            return reinterpret_cast<const float *>(&(model.buffers[colorView.buffer].data[colorAccessor.byteOffset +
-                                                                                          colorView.byteOffset]));
-        } else {
-            return nullptr;
-        }
-    }
-
-    const float *GLTFLoader::loadVertexUV0Buffer(const tinygltf::Model &model,
-                                                 const tinygltf::Primitive &primitive) {
-        if (primitive.attributes.find("TEXCOORD_0") != primitive.attributes.end()) {
-            const tinygltf::Accessor &uvAccessor = model.accessors[primitive.attributes.find("TEXCOORD_0")->second];
-            const tinygltf::BufferView &uvView = model.bufferViews[uvAccessor.bufferView];
-
-            return reinterpret_cast<const float *>(&(model.buffers[uvView.buffer].data[uvAccessor.byteOffset +
-                                                                                       uvView.byteOffset]));
-        } else {
-            return nullptr;
-        }
-    }
-
-    const float *GLTFLoader::loadVertexUV1Buffer(const tinygltf::Model &model,
-                                                 const tinygltf::Primitive &primitive) {
-        if (primitive.attributes.find("TEXCOORD_1") != primitive.attributes.end()) {
-            const tinygltf::Accessor &uvAccessor = model.accessors[primitive.attributes.find("TEXCOORD_1")->second];
-            const tinygltf::BufferView &uvView = model.bufferViews[uvAccessor.bufferView];
-
-            return reinterpret_cast<const float *>(&(model.buffers[uvView.buffer].data[uvAccessor.byteOffset +
-                                                                                       uvView.byteOffset]));
-        } else {
-            return nullptr;
-        }
-    }
-
-    const uint8_t *GLTFLoader::loadVertexJointBuffer(const tinygltf::Model &model,
-                                                      const tinygltf::Primitive &primitive) {
-        if (primitive.attributes.find("JOINTS_0") != primitive.attributes.end()) {
-            const tinygltf::Accessor &jointAccessor = model.accessors[primitive.attributes.find("JOINTS_0")->second];
-            const tinygltf::BufferView &jointView = model.bufferViews[jointAccessor.bufferView];
-
-            return reinterpret_cast<const uint8_t *>(&(model.buffers[jointView.buffer].data[jointAccessor.byteOffset +
-                                                                                             jointView.byteOffset]));
-        } else {
-            return nullptr;
-        }
-    }
-
-    const float *GLTFLoader::loadVertexWeightBuffer(const tinygltf::Model &model,
-                                                    const tinygltf::Primitive &primitive) {
-        if (primitive.attributes.find("WEIGHTS_0") != primitive.attributes.end()) {
-            const tinygltf::Accessor &weightAccessor = model.accessors[primitive.attributes.find("WEIGHTS_0")->second];
-            const tinygltf::BufferView &weightView = model.bufferViews[weightAccessor.bufferView];
-
-            return reinterpret_cast<const float *>(&(model.buffers[weightView.buffer].data[weightAccessor.byteOffset +
-                                                                                           weightView.byteOffset]));
-        } else {
-            return nullptr;
-        }
-    }
-
-    int GLTFLoader::getVertexPositionByteStride(const tinygltf::Model &model, const tinygltf::Primitive &primitive) {
-        assert(primitive.attributes.find("POSITION") != primitive.attributes.end());
-
-        const tinygltf::Accessor &positionAccessor = model.accessors[primitive.attributes.find("POSITION")->second];
-        const tinygltf::BufferView &positionView = model.bufferViews[positionAccessor.bufferView];
-
+        // Determine byte stride
+        uint32_t byteStride;
         if (positionAccessor.ByteStride(positionView)) {
-            return static_cast<int>(positionAccessor.ByteStride(positionView) / sizeof(float));
+            byteStride = positionAccessor.ByteStride(positionView);
         } else {
-            return tinygltf::GetComponentSizeInBytes(TINYGLTF_TYPE_VEC3);
+            byteStride = tinygltf::GetComponentSizeInBytes(TINYGLTF_TYPE_VEC3);
+        }
+
+        auto dataOffset = positionAccessor.byteOffset + positionView.byteOffset;
+
+        if (byteStride == 12) {
+            auto buffer = reinterpret_cast<const float *>(&(model.buffers[positionView.buffer].data[dataOffset]));
+            const float *position = &buffer[index * static_cast<uint32_t>(byteStride / sizeof(buffer[0]))];
+            vertex.pos = glm::make_vec3(position);
+        } else {
+            throw std::runtime_error("glTF model contains invalid byte stride for vertex position.");
         }
     }
 
-    int GLTFLoader::getVertexNormalByteStride(const tinygltf::Model &model, const tinygltf::Primitive &primitive) {
-        if (primitive.attributes.find("NORMAL") != primitive.attributes.end()) {
-            const tinygltf::Accessor &normalAccessor = model.accessors[primitive.attributes.find("NORMAL")->second];
-            const tinygltf::BufferView &normalView = model.bufferViews[normalAccessor.bufferView];
+    void GLTFLoader::loadVertexNormal(const tinygltf::Model &model,
+                                      const tinygltf::Primitive &primitive,
+                                      Vertex &vertex,
+                                      const uint32_t index) {
+        if (primitive.attributes.find(FIELD_VERTEX_NORMAL) == primitive.attributes.end()) {
+            // Skip loading joints if the model does not contain any.
+            return;
+        }
 
-            if (normalAccessor.ByteStride(normalView)) {
-                return static_cast<int>(normalAccessor.ByteStride(normalView) / sizeof(float));
-            } else {
-                return tinygltf::GetComponentSizeInBytes(TINYGLTF_TYPE_VEC3);
+        const auto &normalAccessor = model.accessors[primitive.attributes.find(FIELD_VERTEX_NORMAL)->second];
+        const auto &normalView = model.bufferViews[normalAccessor.bufferView];
+
+        // Determine byte stride
+        uint32_t byteStride;
+        if (normalAccessor.ByteStride(normalView)) {
+            byteStride = normalAccessor.ByteStride(normalView);
+        } else {
+            byteStride = tinygltf::GetComponentSizeInBytes(TINYGLTF_TYPE_VEC3);
+        }
+
+        auto dataOffset = normalAccessor.byteOffset + normalView.byteOffset;
+
+        if (byteStride == 12) {
+            auto buffer = reinterpret_cast<const float *>(&(model.buffers[normalView.buffer].data[dataOffset]));
+            const float *normal = &buffer[index * static_cast<uint32_t>(byteStride / sizeof(buffer[0]))];
+            vertex.normal = glm::make_vec3(normal);
+        } else {
+            throw std::runtime_error("glTF model contains invalid byte stride for vertex normal.");
+        }
+    }
+
+    void GLTFLoader::loadVertexColor(const tinygltf::Model &model,
+                                     const tinygltf::Primitive &primitive,
+                                     Vertex &vertex,
+                                     const uint32_t index) {
+        if (primitive.attributes.find(FIELD_VERTEX_COLOR_0) == primitive.attributes.end()) {
+            // Make the default color of a mesh white, so it's easily visible.
+            vertex.color = glm::vec3(1.0f);
+
+            return;
+        }
+
+        const auto &colorAccessor = model.accessors[primitive.attributes.find(FIELD_VERTEX_COLOR_0)->second];
+        const auto &colorView = model.bufferViews[colorAccessor.bufferView];
+
+        // Determine byte stride
+        uint32_t byteStride;
+        if (colorAccessor.ByteStride(colorView)) {
+            byteStride = colorAccessor.ByteStride(colorView);
+        } else {
+            byteStride = tinygltf::GetComponentSizeInBytes(TINYGLTF_TYPE_VEC3);
+        }
+
+        auto dataOffset = colorAccessor.byteOffset + colorView.byteOffset;
+        auto buffer = reinterpret_cast<const float *>(&(model.buffers[colorView.buffer].data[dataOffset]));
+
+        switch (model.accessors[primitive.attributes.find("COLOR_0")->second].type) {
+            case TINYGLTF_TYPE_VEC3: {
+                const float *color = &buffer[index * 3];
+                vertex.color = glm::vec3(color[0], color[1], color[2]);
+
+                break;
             }
-        } else {
-            return -1;
-        }
-    }
+            case TINYGLTF_TYPE_VEC4: {
+                const float *color = &buffer[index * 4];
+                vertex.color = glm::vec3(color[0], color[1], color[2]);
 
-    int GLTFLoader::getVertexJointByteStride(const tinygltf::Model &model, const tinygltf::Primitive &primitive, const uint8_t * &buffer) {
-        if (primitive.attributes.find("JOINTS_0") != primitive.attributes.end()) {
-            const tinygltf::Accessor &jointAccessor = model.accessors[primitive.attributes.find("JOINTS_0")->second];
-            const tinygltf::BufferView &jointView = model.bufferViews[jointAccessor.bufferView];
-
-            if (jointAccessor.ByteStride(jointView)) {
-                return static_cast<int>(jointAccessor.ByteStride(jointView) / sizeof(buffer[0]));
-            } else {
-                return tinygltf::GetComponentSizeInBytes(TINYGLTF_TYPE_VEC4);
+                break;
             }
-        } else {
-            return -1;
-        }
-    }
-
-    int GLTFLoader::getVertexWeightByteStride(const tinygltf::Model &model, const tinygltf::Primitive &primitive) {
-        if (primitive.attributes.find("WEIGHTS_0") != primitive.attributes.end()) {
-            const tinygltf::Accessor &weightAccessor = model.accessors[primitive.attributes.find("WEIGHTS_0")->second];
-            const tinygltf::BufferView &weightView = model.bufferViews[weightAccessor.bufferView];
-
-            if (weightAccessor.ByteStride(weightView)) {
-                return static_cast<int>(weightAccessor.ByteStride(weightView) / sizeof(float));
-            } else {
-                return tinygltf::GetComponentSizeInBytes(TINYGLTF_TYPE_VEC4);
+            default: {
+                throw std::runtime_error("glTF model contains invalid byte stride for vertex normal.");
             }
+        }
+
+        if (byteStride == 12) {
+            auto colorBuffer = reinterpret_cast<const float *>(&(model.buffers[colorView.buffer].data[dataOffset]));
+            const float *normal = &colorBuffer[index * static_cast<uint32_t>(byteStride / sizeof(colorBuffer[0]))];
+            vertex.normal = glm::make_vec3(normal);
         } else {
-            return -1;
+            throw std::runtime_error("glTF model contains invalid byte stride for vertex normal.");
         }
     }
 
-    int GLTFLoader::getVertexColorType(const tinygltf::Model &model, const tinygltf::Primitive &primitive) {
-        if (primitive.attributes.find("COLOR_0") != primitive.attributes.end()) {
-            return model.accessors[primitive.attributes.find("COLOR_0")->second].type;
+
+    void GLTFLoader::loadVertexUV0(const tinygltf::Model &model,
+                                   const tinygltf::Primitive &primitive,
+                                   Vertex &vertex,
+                                   const uint32_t index) {
+        if (primitive.attributes.find(FIELD_VERTEX_TEXCOORD_0) == primitive.attributes.end()) {
+            // Skip loading joints if the model does not contain any.
+            return;
+        }
+
+        const auto &normalAccessor = model.accessors[primitive.attributes.find(FIELD_VERTEX_TEXCOORD_0)->second];
+        const auto &normalView = model.bufferViews[normalAccessor.bufferView];
+
+        // Determine byte stride
+        uint32_t byteStride;
+        if (normalAccessor.ByteStride(normalView)) {
+            byteStride = normalAccessor.ByteStride(normalView);
         } else {
-            return -1;
+            byteStride = tinygltf::GetComponentSizeInBytes(TINYGLTF_TYPE_VEC2);
+        }
+
+        auto dataOffset = normalAccessor.byteOffset + normalView.byteOffset;
+
+        if (byteStride == 8) {
+            auto buffer = reinterpret_cast<const float *>(&(model.buffers[normalView.buffer].data[dataOffset]));
+            const float *uv0 = &buffer[index * static_cast<uint32_t>(byteStride / sizeof(buffer[0]))];
+            vertex.UV0 = glm::make_vec2(uv0);
+        } else {
+            throw std::runtime_error("glTF model contains invalid byte stride for vertex UV0 coordinates.");
         }
     }
 
-    void GLTFLoader::loadVertexPosition(Vertex &vertex, const float *bufferPosition, const int &positionByteStride,
-                                        const size_t &index) {
-        vertex.pos = glm::make_vec3(&bufferPosition[index * positionByteStride]);
-    }
+    void GLTFLoader::loadVertexUV1(const tinygltf::Model &model,
+                                   const tinygltf::Primitive &primitive,
+                                   Vertex &vertex,
+                                   const uint32_t index) {
+        if (primitive.attributes.find(FIELD_VERTEX_TEXCOORD_1) == primitive.attributes.end()) {
+            // Skip loading joints if the model does not contain any.
+            return;
+        }
 
-    void GLTFLoader::loadVertexNormal(Vertex &vertex, const float *bufferNormal, const int &normalByteStride,
-                                      const size_t &index) {
-        if (bufferNormal) {
-            const float *normal = &bufferNormal[index * normalByteStride];
+        const auto &normalAccessor = model.accessors[primitive.attributes.find(FIELD_VERTEX_TEXCOORD_1)->second];
+        const auto &normalView = model.bufferViews[normalAccessor.bufferView];
 
-            vertex.normal = glm::normalize(glm::vec3(normal[0], normal[1], normal[2]));
+        // Determine byte stride
+        uint32_t byteStride;
+        if (normalAccessor.ByteStride(normalView)) {
+            byteStride = normalAccessor.ByteStride(normalView);
         } else {
-            vertex.normal = glm::vec3(0.0f);
+            byteStride = tinygltf::GetComponentSizeInBytes(TINYGLTF_TYPE_VEC2);
+        }
+
+        auto dataOffset = normalAccessor.byteOffset + normalView.byteOffset;
+
+        if (byteStride == 8) {
+            auto buffer = reinterpret_cast<const float *>(&(model.buffers[normalView.buffer].data[dataOffset]));
+            const float *uv1 = &buffer[index * static_cast<uint32_t>(byteStride / sizeof(buffer[0]))];
+            vertex.UV1 = glm::make_vec2(uv1);
+        } else {
+            throw std::runtime_error("glTF model contains invalid byte stride for vertex UV1 coordinates.");
         }
     }
 
-    void GLTFLoader::loadVertexUV0(Vertex &vertex, const float *bufferTexCoord, const size_t &index) {
-        if (bufferTexCoord) {
-            const float *uv = &bufferTexCoord[index * 2];
+    void GLTFLoader::loadVertexJoints(const tinygltf::Model &model,
+                                      const tinygltf::Primitive &primitive,
+                                      Vertex &vertex,
+                                      const uint32_t index) {
+        if (primitive.attributes.find(FIELD_VERTEX_JOINTS_0) == primitive.attributes.end()) {
+            // Skip loading joints if the model does not contain any.
+            return;
+        }
 
-            vertex.UV0 = glm::vec2(uv[0], uv[1]);
+        const auto &jointAccessor = model.accessors[primitive.attributes.find(FIELD_VERTEX_JOINTS_0)->second];
+        const auto &jointView = model.bufferViews[jointAccessor.bufferView];
+
+        // Determine byte stride
+        uint32_t byteStride;
+        if (jointAccessor.ByteStride(jointView)) {
+            byteStride = jointAccessor.ByteStride(jointView);
         } else {
-            vertex.UV0 = glm::vec2(0.0f);
+            byteStride = tinygltf::GetComponentSizeInBytes(TINYGLTF_TYPE_VEC4);
+        }
+
+        auto dataOffset = jointAccessor.byteOffset + jointView.byteOffset;
+
+        switch (byteStride) {
+            case 4: {
+                auto buffer = reinterpret_cast<const uint8_t *>(&(model.buffers[jointView.buffer].data[dataOffset]));
+                const uint8_t *joint = &buffer[index * static_cast<uint32_t>(byteStride / sizeof(buffer[0]))];
+                vertex.joint = glm::ivec4(joint[0], joint[1], joint[2], joint[3]);
+                break;
+            }
+            case 8: {
+                auto buffer = reinterpret_cast<const uint16_t *>(&(model.buffers[jointView.buffer].data[dataOffset]));
+                const uint16_t *joint = &buffer[index * static_cast<uint32_t>(byteStride / sizeof(buffer[0]))];
+                vertex.joint = glm::ivec4(joint[0], joint[1], joint[2], joint[3]);
+                break;
+            }
+            default: {
+                throw std::runtime_error("glTF model contains invalid byte stride for vertex joints.");
+            }
         }
     }
 
-    void GLTFLoader::loadVertexUV1(Vertex &vertex, const float *bufferTexCoord, const size_t &index) {
-        if (bufferTexCoord) {
-            const float *uv = &bufferTexCoord[index * 2];
-
-            vertex.UV1 = glm::vec2(uv[0], uv[1]);
-        } else {
-            vertex.UV1 = glm::vec2(0.0f);
+    void GLTFLoader::loadVertexWeights(const tinygltf::Model &model,
+                                       const tinygltf::Primitive &primitive,
+                                       Vertex &vertex,
+                                       const uint32_t index) {
+        if (primitive.attributes.find(FIELD_VERTEX_WEIGHTS_0) == primitive.attributes.end()) {
+            // Skip loading weights if the model does not contain any.
+            return;
         }
-    }
 
-    void GLTFLoader::loadVertexJoint(Vertex &vertex,
-                                     const uint8_t *bufferJoint,
-                                     const int &jointByteStride,
-                                     const size_t &index) {
-        if (bufferJoint) {
-            const uint8_t *joint = &bufferJoint[index * jointByteStride];
-            vertex.joint = glm::ivec4(joint[0], joint[1], joint[2], joint[3]);
+        const auto &weightAccessor = model.accessors[primitive.attributes.find(FIELD_VERTEX_WEIGHTS_0)->second];
+        const auto &weightView = model.bufferViews[weightAccessor.bufferView];
+
+        // Determine byte stride
+        uint32_t byteStride;
+        if (weightAccessor.ByteStride(weightView)) {
+            byteStride = weightAccessor.ByteStride(weightView);
         } else {
-            vertex.joint = glm::vec4(0.0f);
+            byteStride = tinygltf::GetComponentSizeInBytes(TINYGLTF_TYPE_VEC4);
         }
-    }
 
-    void GLTFLoader::loadVertexWeight(Vertex &vertex,
-                                      const float *bufferWeight,
-                                      const int &weightByteStride,
-                                      const size_t &index) {
-        if (bufferWeight) {
-            const float *weight = &bufferWeight[index * weightByteStride];
+        auto dataOffset = weightAccessor.byteOffset + weightView.byteOffset;
+
+        if (byteStride == 16) {
+            auto buffer = reinterpret_cast<const float *>(&(model.buffers[weightView.buffer].data[dataOffset]));
+            const float *weight = &buffer[index * static_cast<uint32_t>(byteStride / sizeof(buffer[0]))];
             vertex.weight = glm::make_vec4(weight);
         } else {
-            vertex.weight = glm::vec4(0.0f);
-        }
-    }
-
-    void GLTFLoader::loadVertexColor(Vertex &vertex, const float *bufferColor, const int &type, const size_t &index) {
-        switch (type) {
-            case TINYGLTF_PARAMETER_TYPE_FLOAT_VEC3: {
-                const float *color = &bufferColor[index * 3];
-                vertex.color = glm::vec3(color[0], color[1], color[2]);
-
-                break;
-            }
-            case TINYGLTF_PARAMETER_TYPE_FLOAT_VEC4: {
-                const float *color = &bufferColor[index * 4];
-                vertex.color = glm::vec3(color[0], color[1], color[2]);
-            }
-            default:
-                vertex.color = glm::vec3(1.0f);
-                break;
+            throw std::runtime_error("glTF model contains invalid byte stride for vertex weights.");
         }
     }
 
@@ -468,7 +466,8 @@ namespace pvk {
             }
             case TINYGLTF_PARAMETER_TYPE_UNSIGNED_SHORT: {
                 auto *buffer = new uint16_t[indexAccessor.count];
-                memcpy(buffer, &indexBuffer.data[indexAccessor.byteOffset + indexBufferView.byteOffset], sizeof(uint16_t) * indexAccessor.count);
+                memcpy(buffer, &indexBuffer.data[indexAccessor.byteOffset + indexBufferView.byteOffset],
+                       sizeof(uint16_t) * indexAccessor.count);
                 for (size_t index = 0; index < indexAccessor.count; index++) {
                     indices.push_back(buffer[index] + vertexStart);
                 }
@@ -702,7 +701,8 @@ namespace pvk {
         return allPrimitive;
     }
 
-    std::map<uint32_t, std::vector<gltf::Primitive *>> GLTFLoader::initializePrimitiveLookupTable(std::vector<gltf::Node *> &nodes) {
+    std::map<uint32_t, std::vector<gltf::Primitive *>>
+    GLTFLoader::initializePrimitiveLookupTable(std::vector<gltf::Node *> &nodes) {
         std::map<uint32_t, std::vector<gltf::Primitive *>> primitiveLookup;
 
         for (auto &node : nodes) {
