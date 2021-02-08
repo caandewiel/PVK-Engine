@@ -104,13 +104,9 @@ namespace pvk {
         }
         
         for (auto &object : this->objects) {
-            numberOfNodes += (uint32_t) object->getNodes().size();
+            numberOfNodes += (uint32_t) object->gltfObject->nodeLookup.size();
         }
 
-        for (auto &object : this->assimpObjects) {
-            numberOfNodes += (uint32_t) object->meshLookup.size();
-        }
-        
         std::vector<vk::DescriptorPoolSize> poolSizes{
             {vk::DescriptorType::eUniformBuffer, numberOfNodes * numberOfUniformBuffers * numberOfSwapchainImages},
             {vk::DescriptorType::eCombinedImageSampler, numberOfNodes * numberOfCombinedImageSamplers * numberOfSwapchainImages},
@@ -125,50 +121,23 @@ namespace pvk {
                                                          numberOfSwapchainImages);
         }
 
-        for (auto &assimpObject : this->assimpObjects) {
-            assimpObject->initializeDescriptorSets(this->descriptorPool, this->descriptorSetLayout, numberOfSwapchainImages);
-        }
-        
         std::vector<vk::WriteDescriptorSet> writeDescriptorSets = {};
         
         for (auto &object : this->objects) {
-            for (auto &node : object->getNodes()) {
+            for (auto &node : object->gltfObject->nodeLookup) {
                 for (uint32_t i = 0; i < numberOfSwapchainImages; i++) {
                     for (auto &descriptor : shader->getDescriptorSetLayoutBindings()) {
                         switch (descriptor.descriptorType) {
                             case vk::DescriptorType::eUniformBuffer:
-                                this->addWriteDescriptorSetUniformBuffer(writeDescriptorSets, node, descriptor, i);
+                                this->addWriteDescriptorSetUniformBuffer(writeDescriptorSets, node.second, descriptor, i);
                                 break;
                                 
                             case vk::DescriptorType::eCombinedImageSampler:
-                                this->addWriteDescriptorSetCombinedImageSampler(writeDescriptorSets, node, descriptor, i);
+                                this->addWriteDescriptorSetCombinedImageSampler(writeDescriptorSets, node.second, descriptor, i);
                                 break;
                                 
                             default:
                                 throw std::runtime_error("Unsupported descriptor type");
-                                break;
-                        }
-                    }
-                }
-            }
-        }
-
-        for (auto &object : this->assimpObjects) {
-            for (auto &mesh : object->meshLookup) {
-                for (uint32_t i = 0; i < numberOfSwapchainImages; i++) {
-                    for (auto &descriptor : shader->getDescriptorSetLayoutBindings()) {
-                        switch (descriptor.descriptorType) {
-                            case vk::DescriptorType::eUniformBuffer:
-                                this->addWriteDescriptorSetUniformBuffer(writeDescriptorSets, mesh.second, descriptor, i);
-                                break;
-
-                            case vk::DescriptorType::eCombinedImageSampler:
-                                this->addWriteDescriptorSetCombinedImageSampler(writeDescriptorSets, mesh.second, descriptor, i);
-                                break;
-
-                            default:
-                                throw std::runtime_error("Unsupported descriptor type");
-                                break;
                         }
                     }
                 }
@@ -198,7 +167,8 @@ namespace pvk {
         node->descriptorBuffersInfo[descriptor.binding][i].buffer   = node->uniformBuffers[descriptor.binding][i];
         node->descriptorBuffersInfo[descriptor.binding][i].offset   = 0;
         node->descriptorBuffersInfo[descriptor.binding][i].range    = shader->getSizeForBinding(descriptor.binding);
-        
+
+        writeDescriptorSets.reserve(writeDescriptorSets.size() + 1);
         writeDescriptorSets.emplace_back(node->descriptorSets[i].get(), descriptor.binding, 0, 1, vk::DescriptorType::eUniformBuffer, nullptr, &node->descriptorBuffersInfo[descriptor.binding][i]);
     }
     
@@ -207,40 +177,7 @@ namespace pvk {
                                                              vk::DescriptorSetLayoutBinding &descriptor,
                                                              uint32_t i)
     {
+        writeDescriptorSets.reserve(writeDescriptorSets.size() + 1);
         writeDescriptorSets.emplace_back(node->descriptorSets[i].get(), descriptor.binding, 0, 1, vk::DescriptorType::eCombinedImageSampler, this->textures[descriptor.binding]->getDescriptorImageInfo());
-    }
-
-    void Pipeline::registerObject(AssimpObject *object) {
-        this->assimpObjects.reserve(this->assimpObjects.size() + 1);
-        this->assimpObjects.emplace_back(object);
-    }
-
-    void Pipeline::addWriteDescriptorSetUniformBuffer(std::vector<vk::WriteDescriptorSet> &writeDescriptorSets,
-                                                      pvk::AssimpMesh *mesh,
-                                                      vk::DescriptorSetLayoutBinding &descriptor,
-                                                      uint32_t i) {
-        auto numberOfSwapchainImages = (uint32_t) Context::getSwapchainImages().size();
-
-        mesh->uniformBuffers[descriptor.binding].resize(numberOfSwapchainImages);
-        mesh->uniformBuffersMemory[descriptor.binding].resize(numberOfSwapchainImages);
-        mesh->descriptorBuffersInfo[descriptor.binding].resize(numberOfSwapchainImages);
-
-        pvk::buffer::create(shader->getSizeForBinding(descriptor.binding),
-                            vk::BufferUsageFlagBits::eUniformBuffer,
-                            vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
-                            mesh->uniformBuffers[descriptor.binding][i],
-                            mesh->uniformBuffersMemory[descriptor.binding][i]);
-
-        mesh->descriptorBuffersInfo[descriptor.binding][i].buffer   = mesh->uniformBuffers[descriptor.binding][i];
-        mesh->descriptorBuffersInfo[descriptor.binding][i].offset   = 0;
-        mesh->descriptorBuffersInfo[descriptor.binding][i].range    = shader->getSizeForBinding(descriptor.binding);
-
-        writeDescriptorSets.emplace_back(mesh->descriptorSets[i].get(), descriptor.binding, 0, 1, vk::DescriptorType::eUniformBuffer, nullptr, &mesh->descriptorBuffersInfo[descriptor.binding][i]);
-    }
-
-    void Pipeline::addWriteDescriptorSetCombinedImageSampler(std::vector<vk::WriteDescriptorSet> &writeDescriptorSets,
-                                                             pvk::AssimpMesh *mesh,
-                                                             vk::DescriptorSetLayoutBinding &descriptor, uint32_t i) {
-        writeDescriptorSets.emplace_back(mesh->descriptorSets[i].get(), descriptor.binding, 0, 1, vk::DescriptorType::eCombinedImageSampler, this->textures[descriptor.binding]->getDescriptorImageInfo());
     }
 }

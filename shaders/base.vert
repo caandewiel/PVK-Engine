@@ -48,7 +48,7 @@ void main() {
     outLightPosition = ubo.lightPosition;
     
     outCameraPosition = ubo.cameraPosition;
-    
+
 
     gl_Position = ubo.proj * ubo.view * vec4(localPosition.xyz, 1.0);
 }

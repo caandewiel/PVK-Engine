@@ -116,11 +116,6 @@ namespace pvk {
             resultNode->matrix = glm::make_mat4x4(node.matrix.data());
         } else {
             resultNode->matrix = glm::mat4(1.0f);
-            auto translationMatrix = glm::translate(glm::mat4(1.0f), resultNode->translation);
-            auto rotationMatrix = glm::mat4(resultNode->rotation);
-            auto scaleMatrix = glm::scale(glm::mat4(1.0f), resultNode->scale);
-
-            resultNode->matrix = translationMatrix * rotationMatrix * scaleMatrix * resultNode->matrix;
         }
 
         // Filter out all lights and cameras

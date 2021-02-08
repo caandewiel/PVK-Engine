@@ -25,6 +25,7 @@ namespace pvk::gltf {
 
         ~Node();
 
+        glm::mat4 getGlobalMatrix() const;
         glm::mat4 getLocalMatrix() const;
 
         std::vector<Node *> children{};
@@ -34,6 +35,13 @@ namespace pvk::gltf {
         int skinIndex = -1;
         int nodeIndex = -1;
         std::string name;
+
+        struct {
+            glm::mat4 model;
+            glm::mat4 localMatrix;
+            glm::mat4 inverseBindMatrices[256];
+            float jointCount;
+        } bufferObject;
 
         std::vector<vk::UniqueDescriptorSet> descriptorSets{};
 

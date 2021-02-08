@@ -30,14 +30,14 @@ namespace pvk::gltf {
                                           const uint32_t numberOfSwapChainImages) {
         std::vector<vk::DescriptorSetLayout> layouts(numberOfSwapChainImages, descriptorSetLayout);
 
-        for (auto &node : this->nodes) {
+        for (auto &node : this->nodeLookup) {
             vk::DescriptorSetAllocateInfo descriptorSetAllocateInfo = {};
             descriptorSetAllocateInfo.descriptorPool = descriptorPool;
             descriptorSetAllocateInfo.descriptorSetCount = numberOfSwapChainImages;
             descriptorSetAllocateInfo.pSetLayouts = layouts.data();
 
-            node->descriptorSets.resize(numberOfSwapChainImages);
-            node->descriptorSets = logicalDevice.allocateDescriptorSetsUnique(descriptorSetAllocateInfo);
+            node.second->descriptorSets.resize(numberOfSwapChainImages);
+            node.second->descriptorSets = logicalDevice.allocateDescriptorSetsUnique(descriptorSetAllocateInfo);
         }
     }
 
@@ -47,7 +47,7 @@ namespace pvk::gltf {
 
 void Object::updateJointsByNode(Node *node) {
     if (node->mesh && node->skinIndex > -1) {
-        auto inverseTransform = glm::inverse(node->getLocalMatrix());
+        auto inverseTransform = glm::inverse(node->getGlobalMatrix());
         auto skin = this->skinLookup[node->skinIndex];
         auto numberOfJoints = skin->jointsIndices.size();
 
@@ -55,7 +55,7 @@ void Object::updateJointsByNode(Node *node) {
 
         for (size_t i = 0; i < numberOfJoints; i++) {
             jointMatrices[i] =
-                    this->getNodeByIndex(skin->jointsIndices[i])->getLocalMatrix() * skin->inverseBindMatrices[i];
+                    this->getNodeByIndex(skin->jointsIndices[i])->getGlobalMatrix() * skin->inverseBindMatrices[i];
             jointMatrices[i] = inverseTransform * jointMatrices[i];
         }
 

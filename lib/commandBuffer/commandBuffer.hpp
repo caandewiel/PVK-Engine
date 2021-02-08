@@ -44,28 +44,9 @@ namespace pvk {
                                                         this->currentPipeline->pipelineLayout, 0, 1,
                                                         &node->descriptorSets[this->swapchainIndex].get(), 0, nullptr);
 
-                for (auto &primitive : object->primitiveLookup[node->nodeIndex]) {
+                for (auto &primitive : node->primitives) {
                     this->commandBuffer->drawIndexed(primitive->indexCount, 1, primitive->startIndex, 0, 0);
                 }
-            }
-        }
-
-        void drawNode(AssimpObject *object, AssimpNode *node) {
-            if (this->currentPipeline == 0) {
-                throw std::runtime_error("No active pipeline defined");
-            }
-
-            this->commandBuffer->bindVertexBuffers(0, object->vertexBuffer, {0});
-            this->commandBuffer->bindIndexBuffer(object->indexBuffer, 0, vk::IndexType::eUint32);
-
-            for (auto &meshIndex : node->meshIndices) {
-                auto &mesh = object->meshLookup[meshIndex];
-
-                this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
-                                                        this->currentPipeline->pipelineLayout, 0, 1,
-                                                        &mesh->descriptorSets[this->swapchainIndex].get(), 0, nullptr);
-
-                this->commandBuffer->drawIndexed(mesh->indexCount, 1, mesh->startIndex, mesh->startVertex, 0);
             }
         }
 

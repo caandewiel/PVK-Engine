@@ -60,7 +60,7 @@ class App : public Application {
 
         // Load model
         _fox = pvk::Object::createFromGLTF(graphicsQueue,
-                                           "/Users/christian/walk2.glb");
+                                           "/Users/christian/Downloads/walk_robot/scene.gltf");
         _pipeline->registerObject(_fox);
 
         // Load skybox
@@ -81,14 +81,18 @@ class App : public Application {
         uniformBufferObject.lightPosition = glm::vec3(0.0f, 0.0f, 5.0f);
 
         auto setMaterial = [](pvk::gltf::Object *object, pvk::gltf::Node *node, vk::DeviceMemory &memory) {
-            pvk::buffer::update(memory,
-                                sizeof(object->primitiveLookup[node->nodeIndex][0]->material),
-                                &object->primitiveLookup[node->nodeIndex][0]->material);
+            struct {
+                glm::vec4 baseColorFactor = glm::vec4(1.0f);
+                float metallicFactor = 0.5f;
+                float roughnessFactor = 0.4f;
+            } material;
+            pvk::buffer::update(memory, sizeof(material), &material);
+//            pvk::buffer::update(memory,
+//                                sizeof(object->primitiveLookup[node->nodeIndex][0]->material),
+//                                &object->primitiveLookup[node->nodeIndex][0]->material);
         };
 
         _fox->updateUniformBufferPerNode(2, setMaterial);
-//        _fox->getAnimations()[0]->update(0.0f);
-//        _fox->gltfObject->updateJoints();
     }
 
     void update() override {
@@ -110,8 +114,8 @@ class App : public Application {
                 float jointCount;
             } _bufferObject{};
 
-            _bufferObject.model = glm::mat4(1.0f);
-            _bufferObject.localMatrix = node->matrix;
+            _bufferObject.model = glm::scale(glm::mat4(1.0f), glm::vec3(0.1f));
+            _bufferObject.localMatrix = node->getGlobalMatrix();
 
             auto &inverseBindMatrices = object->inverseBindMatrices;
 
@@ -123,11 +127,7 @@ class App : public Application {
                 }
             }
 
-            if ((!node->children.empty() && node->children[0]->skinIndex > -1) || (object->nodes.size() == 1 && object->skinLookup.size() == 1)) {
-                _bufferObject.jointCount = static_cast<float>(inverseBindMatrices.size());
-            } else {
-                _bufferObject.jointCount = 0.0f;
-            }
+            _bufferObject.jointCount = static_cast<float>(inverseBindMatrices.size());
 
             pvk::buffer::update(memory, sizeof(_bufferObject), &_bufferObject);
         };
@@ -147,8 +147,8 @@ class App : public Application {
 
         commandBuffer->bindPipeline(_pipeline);
 
-        for (auto &node : _fox->getNodes()) {
-            commandBuffer->drawNode(_fox->gltfObject, node);
+        for (auto &node : _fox->gltfObject->nodeLookup) {
+            commandBuffer->drawNode(_fox->gltfObject, node.second);
         }
     }
 

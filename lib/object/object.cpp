@@ -46,8 +46,8 @@ namespace pvk {
     }
 
     void Object::updateUniformBuffer(uint32_t bindingIndex, size_t size, void *data) const {
-        for (auto &node : this->gltfObject->nodes) {
-            auto &uniformBuffersMemory = node->uniformBuffersMemory[bindingIndex];
+        for (auto &node : this->gltfObject->nodeLookup) {
+            auto &uniformBuffersMemory = node.second->uniformBuffersMemory[bindingIndex];
 
             for (auto &uniformBufferMemory : uniformBuffersMemory) {
                 pvk::buffer::update(uniformBufferMemory, size, data);
@@ -59,25 +59,11 @@ namespace pvk {
                                             const std::function<void(pvk::gltf::Object *object,
                                                                      pvk::gltf::Node *node,
                                                                      vk::DeviceMemory &memory)> &function) const {
-        for (auto &node : this->gltfObject->nodes) {
-            auto &uniformBuffersMemory = node->uniformBuffersMemory[bindingIndex];
+        for (auto &node : this->gltfObject->nodeLookup) {
+            auto &uniformBuffersMemory = node.second->uniformBuffersMemory[bindingIndex];
 
             for (auto &uniformBufferMemory : uniformBuffersMemory) {
-                function(this->gltfObject, node, uniformBufferMemory);
-            }
-        }
-    }
-
-    void Object::updateUniformBufferPerNode(uint32_t bindingIndex,
-                                            std::function<void(pvk::gltf::Node *node,
-                                                               vk::DeviceMemory &memory,
-                                                               void *data)> function,
-                                            void *data) {
-        for (auto &node : this->gltfObject->nodes) {
-            auto &uniformBuffersMemory = node->uniformBuffersMemory[bindingIndex];
-
-            for (auto &uniformBufferMemory : uniformBuffersMemory) {
-                function(node, uniformBufferMemory, data);
+                function(this->gltfObject, node.second, uniformBufferMemory);
             }
         }
     }
