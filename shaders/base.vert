@@ -40,7 +40,7 @@ void main() {
         localPosition = model.model * model.local * skinMat * vec4(inPosition, 1.0);
         outNormal = normalize(transpose(inverse(mat3(model.model * model.local * skinMat))) * inNormal);
     } else {
-        localPosition = model.model * model.local * vec4(inPosition, 1.0) * vec4(0.05);
+        localPosition = model.model * model.local * vec4(inPosition, 1.0);
         outNormal = normalize(transpose(inverse(mat3(model.model * model.local))) * inNormal);
     }
     outPosition = vec3(localPosition);
@@ -48,7 +48,6 @@ void main() {
     outLightPosition = ubo.lightPosition;
     
     outCameraPosition = ubo.cameraPosition;
-
 
     gl_Position = ubo.proj * ubo.view * vec4(localPosition.xyz, 1.0);
 }

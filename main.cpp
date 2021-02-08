@@ -60,7 +60,7 @@ class App : public Application {
 
         // Load model
         _fox = pvk::Object::createFromGLTF(graphicsQueue,
-                                           "/Users/christian/Downloads/walk_robot/scene.gltf");
+                                           "/Users/christian/Downloads/buster_drone/scene.gltf");
         _pipeline->registerObject(_fox);
 
         // Load skybox
@@ -107,15 +107,8 @@ class App : public Application {
         const auto setUniformBufferObject = [](pvk::gltf::Object *object,
                                                pvk::gltf::Node *node,
                                                vk::DeviceMemory &memory) {
-            struct {
-                glm::mat4 model;
-                glm::mat4 localMatrix;
-                glm::mat4 inverseBindMatrices[256];
-                float jointCount;
-            } _bufferObject{};
-
-            _bufferObject.model = glm::scale(glm::mat4(1.0f), glm::vec3(0.1f));
-            _bufferObject.localMatrix = node->getGlobalMatrix();
+            node->bufferObject.model = glm::scale(glm::mat4(1.0f), glm::vec3(0.1f));
+            node->bufferObject.localMatrix = node->getGlobalMatrix();
 
             auto &inverseBindMatrices = object->inverseBindMatrices;
 
@@ -123,16 +116,20 @@ class App : public Application {
                 // No need to change the buffer object.
             } else {
                 for (size_t i = 0; i < inverseBindMatrices.size(); i++) {
-                    _bufferObject.inverseBindMatrices[i] = inverseBindMatrices[i];
+                    node->bufferObject.inverseBindMatrices[i] = inverseBindMatrices[i];
                 }
             }
 
-            _bufferObject.jointCount = static_cast<float>(inverseBindMatrices.size());
+            if (node->skinIndex > -1) {
+                node->bufferObject.jointCount = static_cast<float>(inverseBindMatrices.size());
+            } else {
+                node->bufferObject.jointCount = 0.0f;
+            }
 
-            pvk::buffer::update(memory, sizeof(_bufferObject), &_bufferObject);
+            pvk::buffer::update(memory, sizeof(node->bufferObject), &node->bufferObject);
         };
 
-        _fox->getAnimations()[0]->update(this->deltaTime);
+//        _fox->getAnimations()[0]->update(this->deltaTime);
         _fox->gltfObject->updateJoints();
         _fox->updateUniformBufferPerNode(1, setUniformBufferObject);
         _skyboxObject->updateUniformBufferPerNode(1, setUniformBufferObject);
