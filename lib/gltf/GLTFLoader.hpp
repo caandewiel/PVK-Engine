@@ -23,6 +23,9 @@
 #include <string>
 #include <cstring>
 #include <glm/gtc/type_ptr.hpp>
+#include <sstream>
+#include <future>
+#include <execution>
 
 #include "tiny_gltf.h"
 
@@ -33,6 +36,7 @@
 #include "GLTFNode.hpp"
 #include "GLTFAnimation.hpp"
 #include "GLTFSkin.hpp"
+#include "GLTFMaterial.hpp"
 
 namespace pvk {
     class GLTFLoader {
@@ -60,6 +64,8 @@ namespace pvk {
 
         static std::vector<gltf::Skin *> loadSkins(tinygltf::Model &model,
                                                    std::map<uint32_t, gltf::Node *> &nodeLookup);
+
+        static void loadMaterials(tinygltf::Model &model, vk::Queue &graphicsQueue, gltf::Object *object);
 
         static void loadMaterial(tinygltf::Model &model,
                                  gltf::Primitive *primitive,
@@ -90,9 +96,9 @@ namespace pvk {
                                     uint32_t index);
 
         static void loadVertexUV0(const tinygltf::Model &model,
-                           const tinygltf::Primitive &primitive,
-                           Vertex &vertex,
-                           uint32_t index);
+                                  const tinygltf::Primitive &primitive,
+                                  Vertex &vertex,
+                                  uint32_t index);
 
         static void loadVertexUV1(const tinygltf::Model &model,
                                   const tinygltf::Primitive &primitive,

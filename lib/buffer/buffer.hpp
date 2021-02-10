@@ -11,8 +11,11 @@
 #define NUMBER_OF_FACES_FOR_CUBE 6
 
 #include <cstdio>
+#include <utility>
 #include <vulkan/vulkan.hpp>
 #include <gli.hpp>
+
+#include "tiny_gltf.h"
 
 #include "../mesh/vertex.hpp"
 #include "../image/image.hpp"
@@ -22,7 +25,7 @@
 namespace pvk {
     class Buffer {
     public:
-        Buffer(std::vector<vk::Buffer> buffer, std::vector<vk::DeviceMemory> bufferMemory): buffer(buffer), bufferMemory(bufferMemory) {};
+        Buffer(std::vector<vk::Buffer> buffer, std::vector<vk::DeviceMemory> bufferMemory): buffer(std::move(buffer)), bufferMemory(std::move(bufferMemory)) {};
         std::vector<vk::Buffer> getBuffer() {return this->buffer;};
         std::vector<vk::DeviceMemory> getBufferMemory() {return this->bufferMemory;};
         
@@ -32,9 +35,9 @@ namespace pvk {
     };
     
     namespace buffer {
-        void create(const vk::DeviceSize size,
-                    const vk::BufferUsageFlags usage,
-                    const vk::MemoryPropertyFlags properties,
+        void create(vk::DeviceSize size,
+                    vk::BufferUsageFlags usage,
+                    vk::MemoryPropertyFlags properties,
                     vk::Buffer &buffer,
                     vk::DeviceMemory &bufferMemory);
         
@@ -70,6 +73,10 @@ namespace pvk {
         namespace texture {
             void create(const vk::Queue &graphicsQueue,
                         const gli::texture_cube &textureCube,
+                        pvk::Texture &texture);
+
+            void create(const vk::Queue &graphicsQueue,
+                        const tinygltf::Image &gltfImage,
                         pvk::Texture &texture);
         }
     }

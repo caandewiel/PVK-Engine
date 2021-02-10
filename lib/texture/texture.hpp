@@ -18,10 +18,10 @@ namespace pvk {
         Texture();
         vk::DescriptorImageInfo* getDescriptorImageInfo();
         
-        vk::UniqueImage image;
-        vk::UniqueDeviceMemory imageMemory;
-        vk::UniqueSampler sampler;
-        vk::UniqueImageView imageView;
+        vk::UniqueImage image {};
+        vk::UniqueDeviceMemory imageMemory {};
+        vk::UniqueSampler sampler {};
+        vk::UniqueImageView imageView {};
         
     private:
         vk::DescriptorImageInfo descriptorImageInfo{};

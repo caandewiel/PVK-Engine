@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <map>
+#include <chrono>
 
 #include "lib/application/application.hpp"
 
@@ -37,12 +38,13 @@ class App : public Application {
 
     void initialize() override {
         // Initialize shader
-        _shader = new pvk::Shader("/Users/christian/Documents/VulkanHpp/VulkanHpp/shaders/base.vert.spv",
-                                  "/Users/christian/Documents/VulkanHpp/VulkanHpp/shaders/base.frag.spv",
+        _shader = new pvk::Shader("/Users/christian/PVK-Engine/shaders/base.vert.spv",
+                                  "/Users/christian/PVK-Engine/shaders/base.frag.spv",
                                   {
                                           {0, pvk::DescriptorType::UNIFORM_BUFFER, pvk::ShaderStage::VERTEX_ONLY,         sizeof(uniformBufferObject)},
                                           {1, pvk::DescriptorType::UNIFORM_BUFFER, pvk::ShaderStage::VERTEX_ONLY,         sizeof(bufferObject)},
-                                          {2, pvk::DescriptorType::UNIFORM_BUFFER, pvk::ShaderStage::VERTEX_AND_FRAGMENT, sizeof(material)}
+                                          {2, pvk::DescriptorType::UNIFORM_BUFFER, pvk::ShaderStage::VERTEX_AND_FRAGMENT, sizeof(material)},
+                                          {3, pvk::DescriptorType::COMBINED_IMAGE_SAMPLER, pvk::ShaderStage::FRAGMENT_ONLY, 0},
                                   });
 
         _skyboxShader = new pvk::Shader("/Users/christian/Documents/VulkanHpp/VulkanHpp/shaders/skybox_new.vert.spv",
@@ -59,9 +61,13 @@ class App : public Application {
                                             vk::CullModeFlagBits::eFront, false);
 
         // Load model
-        _fox = pvk::Object::createFromGLTF(graphicsQueue,
-                                           "/Users/christian/Downloads/buster_drone/scene.gltf");
+        auto t1 = std::chrono::high_resolution_clock::now();
+        _fox = pvk::Object::createFromGLTF(graphicsQueue, "/Users/christian/Downloads/walk_robot/scene.gltf");
+        auto t2 = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>( t2 - t1 ).count();
+        std::cout << "Loading model took " << duration << "ms";
         _pipeline->registerObject(_fox);
+        _pipeline->registerTexture(_fox->gltfObject->materials[0]->baseColorTexture, 3);
 
         // Load skybox
         _skyboxObject = pvk::Object::createFromGLTF(graphicsQueue, "/Users/christian/Downloads/data/models/cube.gltf");
@@ -82,8 +88,8 @@ class App : public Application {
 
         auto setMaterial = [](pvk::gltf::Object *object, pvk::gltf::Node *node, vk::DeviceMemory &memory) {
             struct {
-                glm::vec4 baseColorFactor = glm::vec4(1.0f);
-                float metallicFactor = 0.5f;
+                glm::vec4 baseColorFactor = glm::vec4(1.0f, 0.0f, 0.0f, 0.0f);
+                float metallicFactor = 0.0;
                 float roughnessFactor = 0.4f;
             } material;
             pvk::buffer::update(memory, sizeof(material), &material);
@@ -129,7 +135,7 @@ class App : public Application {
             pvk::buffer::update(memory, sizeof(node->bufferObject), &node->bufferObject);
         };
 
-//        _fox->getAnimations()[0]->update(this->deltaTime);
+        _fox->getAnimations()[0]->update(this->deltaTime);
         _fox->gltfObject->updateJoints();
         _fox->updateUniformBufferPerNode(1, setUniformBufferObject);
         _skyboxObject->updateUniformBufferPerNode(1, setUniformBufferObject);

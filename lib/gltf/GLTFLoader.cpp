@@ -41,6 +41,7 @@ namespace pvk {
         object->nodeLookup = GLTFLoader::initializeNodeLookupTable(object->nodes);
         object->primitiveLookup = GLTFLoader::initializePrimitiveLookupTable(object->nodes);
         object->animations = GLTFLoader::loadAnimations(model, object->nodeLookup);
+        GLTFLoader::loadMaterials(model, graphicsQueue, object);
 
         pvk::buffer::vertex::create(graphicsQueue,
                                     object->vertexBuffer,
@@ -245,7 +246,9 @@ namespace pvk {
             const float *normal = &buffer[index * static_cast<uint32_t>(byteStride / sizeof(buffer[0]))];
             vertex.normal = glm::make_vec3(normal);
         } else {
-            throw std::runtime_error("glTF model contains invalid byte stride for vertex normal.");
+            std::ostringstream error;
+            error << "glTF model contains invalid byte stride for vertex normal (" << byteStride << ").";
+            throw std::runtime_error(error.str());
         }
     }
 
@@ -288,16 +291,24 @@ namespace pvk {
                 break;
             }
             default: {
-                throw std::runtime_error("glTF model contains invalid byte stride for vertex normal.");
+                std::ostringstream error;
+                error << "glTF model contains invalid byte stride for vertex color (" << byteStride << ").";
+                throw std::runtime_error(error.str());
             }
         }
 
+        auto colorBuffer = reinterpret_cast<const float *>(&(model.buffers[colorView.buffer].data[dataOffset]));
+
         if (byteStride == 12) {
-            auto colorBuffer = reinterpret_cast<const float *>(&(model.buffers[colorView.buffer].data[dataOffset]));
-            const float *normal = &colorBuffer[index * static_cast<uint32_t>(byteStride / sizeof(colorBuffer[0]))];
-            vertex.normal = glm::make_vec3(normal);
+            const float *color = &colorBuffer[index * static_cast<uint32_t>(byteStride / sizeof(colorBuffer[0]))];
+            vertex.normal = glm::make_vec3(color);
+        } else if (byteStride == 16) {
+            const float *color = &colorBuffer[index * static_cast<uint32_t>(byteStride / sizeof(colorBuffer[0]))];
+            vertex.normal = glm::make_vec3(color);
         } else {
-            throw std::runtime_error("glTF model contains invalid byte stride for vertex normal.");
+            std::ostringstream error;
+            error << "glTF model contains invalid byte stride for vertex color (" << byteStride << ").";
+            throw std::runtime_error(error.str());
         }
     }
 
@@ -342,21 +353,21 @@ namespace pvk {
             return;
         }
 
-        const auto &normalAccessor = model.accessors[primitive.attributes.find(FIELD_VERTEX_TEXCOORD_1)->second];
-        const auto &normalView = model.bufferViews[normalAccessor.bufferView];
+        const auto &uv1Accessor = model.accessors[primitive.attributes.find(FIELD_VERTEX_TEXCOORD_1)->second];
+        const auto &uv1View = model.bufferViews[uv1Accessor.bufferView];
 
         // Determine byte stride
         uint32_t byteStride;
-        if (normalAccessor.ByteStride(normalView)) {
-            byteStride = normalAccessor.ByteStride(normalView);
+        if (uv1Accessor.ByteStride(uv1View)) {
+            byteStride = uv1Accessor.ByteStride(uv1View);
         } else {
             byteStride = tinygltf::GetComponentSizeInBytes(TINYGLTF_TYPE_VEC2);
         }
 
-        auto dataOffset = normalAccessor.byteOffset + normalView.byteOffset;
+        auto dataOffset = uv1Accessor.byteOffset + uv1View.byteOffset;
 
         if (byteStride == 8) {
-            auto buffer = reinterpret_cast<const float *>(&(model.buffers[normalView.buffer].data[dataOffset]));
+            auto buffer = reinterpret_cast<const float *>(&(model.buffers[uv1View.buffer].data[dataOffset]));
             const float *uv1 = &buffer[index * static_cast<uint32_t>(byteStride / sizeof(buffer[0]))];
             vertex.UV1 = glm::make_vec2(uv1);
         } else {
@@ -481,6 +492,28 @@ namespace pvk {
                 throw std::runtime_error("Unsupported glTF index component type");
             }
         }
+    }
+
+    void GLTFLoader::loadMaterials(tinygltf::Model &model, vk::Queue &graphicsQueue, gltf::Object *object) {
+        auto materials = std::vector<gltf::Material*>(model.materials.size());
+
+        for (auto i = 0; i < model.materials.size(); i++) {
+            auto &material = model.materials[i];
+            auto _material = new gltf::Material();
+            auto _texture = new Texture();
+            auto &baseColorTextureInfo = material.pbrMetallicRoughness.baseColorTexture;
+
+            if (baseColorTextureInfo.index > -1) {
+                auto &baseColorTexture = model.textures[baseColorTextureInfo.index];
+                auto &baseColorTextureImage = model.images[baseColorTexture.source];
+                buffer::texture::create(graphicsQueue, baseColorTextureImage, *_texture);
+            }
+            _material->baseColorTexture = _texture;
+
+            materials[i] = _material;
+        }
+
+        object->materials = materials;
     }
 
     void GLTFLoader::loadMaterial(tinygltf::Model &model,

@@ -7,10 +7,14 @@ layout(binding = 2) uniform Material {
     float roughnessFactor;
 } material;
 
+layout(binding = 3) uniform sampler2D texSampler;
+
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inNormal;
-layout(location = 2) in vec3 inLightPosition;
-layout(location = 3) in vec3 inCameraPosition;
+layout(location = 2) in vec2 inUV0;
+layout(location = 3) in vec2 inUV1;
+layout(location = 4) in vec3 inLightPosition;
+layout(location = 5) in vec3 inCameraPosition;
 
 layout(location = 0) out vec4 outColor;
 
@@ -38,7 +42,8 @@ float G_SchlicksmithGGX(float dotNL, float dotNV, float roughness)
 // Fresnel function ----------------------------------------------------
 vec3 F_Schlick(float cosTheta, float metallic)
 {
-    vec3 F0 = mix(vec3(0.04), material.baseColorFactor.xyz, metallic); // * material.specular
+    vec3 F0 = mix(vec3(0.04), texture(texSampler, inUV0).xyz, metallic); // * material.specular
+//    vec3 F0 = mix(vec3(0.04), material.baseColorFactor.xyz, metallic); // * material.specular
     vec3 F = F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
     return F;
 }
@@ -88,7 +93,8 @@ void main() {
     Lo += BRDF(L, V, N, material.metallicFactor, roughness);
 
     // Combine with ambient
-    vec3 color = vec3(material.baseColorFactor) * 0.02;
+    vec3 color = texture(texSampler, inUV0).xyz * 0.02;
+//    vec3 color = vec3(material.baseColorFactor) * 0.02;
     color += Lo;
 
     // Gamma correct

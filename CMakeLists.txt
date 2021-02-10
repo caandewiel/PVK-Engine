@@ -45,7 +45,7 @@ SET(PUBLIC_HEADERS
         lib/util/util.hpp
         lib/gltf/GLTFSkin.hpp
         lib/io/io.hpp
-)
+        lib/gltf/GLTFMaterial.hpp)
 
 SET(SOURCES
         lib/buffer/buffer.cpp

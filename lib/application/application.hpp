@@ -8,9 +8,6 @@
 #ifndef application_h
 #define application_h
 
-#define TINYGLTF_IMPLEMENTATION
-#define STB_IMAGE_IMPLEMENTATION
-#define STB_IMAGE_WRITE_IMPLEMENTATION
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 
@@ -254,7 +251,6 @@ protected:
 
             if (timeCurrent - timePrevious >= 1.0)
             {
-                std::cout << "FPS: " << frameCount << std::endl;
                 std::stringstream ss;
                 ss << " [" << frameCount << " FPS]";
 

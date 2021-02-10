@@ -16,6 +16,7 @@
 #include "GLTFNode.hpp"
 #include "GLTFAnimation.hpp"
 #include "GLTFSkin.hpp"
+#include "GLTFMaterial.hpp"
 
 namespace pvk::gltf {
     class Object {
@@ -38,6 +39,7 @@ namespace pvk::gltf {
         std::vector<glm::mat4> inverseBindMatrices;
         std::vector<Vertex> vertices{};
         std::vector<uint32_t> indices{};
+        std::vector<Material*> materials{};
         vk::Buffer vertexBuffer{};
         vk::DeviceMemory vertexBufferMemory{};
         vk::Buffer indexBuffer{};
