@@ -22,9 +22,9 @@ namespace pvk {
 
         ~Object();
 
-        std::vector<gltf::Node *> getNodes() const;
+        [[nodiscard]] std::vector<gltf::Node *> getNodes() const;
 
-        std::vector<gltf::Animation *> getAnimations() const;
+        [[nodiscard]] std::vector<gltf::Animation *> getAnimations() const;
 
         void updateUniformBuffer(uint32_t bindingIndex, size_t size, void *data) const;
 
@@ -32,12 +32,6 @@ namespace pvk {
                                         const std::function<void(pvk::gltf::Object *object,
                                                                  pvk::gltf::Node *node,
                                                                  vk::DeviceMemory &memory)> &function) const;
-
-        void updateUniformBufferPerNode(uint32_t bindingIndex,
-                                        std::function<void(pvk::gltf::Node *node, vk::DeviceMemory &memory,
-                                                           void *data)> function,
-                                        void *data);
-
         // @TODO: Make this private
         gltf::Object *gltfObject;
 

@@ -20,8 +20,6 @@ namespace pvk::pipeline {
         public:
             Builder(const vk::RenderPass &renderPass, const vk::PipelineLayout &pipelineLayout);
             ~Builder();
-            void loadShader(std::string filePath, vk::ShaderStageFlagBits stage, const char* entryPoint = "main");
-            void clearShaderModules();
             vk::Pipeline create(const vk::PipelineCache &cache);
             vk::Pipeline create();
             void update();

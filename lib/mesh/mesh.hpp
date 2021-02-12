@@ -8,20 +8,20 @@
 #ifndef Mesh_hpp
 #define Mesh_hpp
 
-#include <stdio.h>
+#include <cstdio>
 #include <vector>
 #include <vulkan/vulkan.hpp>
 
 #include "vertex.hpp"
 
 namespace pvk {
-    class Mesh
-    {
+    class Mesh {
     public:
-        Mesh();
-        ~Mesh();
+        Mesh() = default;
 
-        uint32_t startingIndex;
+        ~Mesh() = default;
+
+        uint32_t startingIndex{};
         std::vector<Vertex> vertices{};
         std::vector<uint32_t> indices{};
     };

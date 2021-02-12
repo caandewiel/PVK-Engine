@@ -187,8 +187,6 @@ namespace pvk {
         pipeline->setDescriptorSetLayouts(descriptorSetLayouts);
         pipeline->setDescriptorSetLayoutBindingsLookup(descriptorSetLayoutBindingsLookup);
 
-        pipelineBuilder.clearShaderModules();
-
         return pipeline;
     }
 

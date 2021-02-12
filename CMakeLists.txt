@@ -62,7 +62,6 @@ SET(SOURCES
         lib/gltf/GLTFAnimation.cpp
         lib/image/image.cpp
         lib/ktx/KTXLoader.cpp
-        lib/mesh/mesh.cpp
         lib/mesh/vertex.cpp
         lib/object/object.cpp
         lib/pipeline/pipeline.cpp
