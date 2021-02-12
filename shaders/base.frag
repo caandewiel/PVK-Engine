@@ -8,6 +8,8 @@ layout(binding = 2) uniform Material {
 } material;
 
 layout(binding = 3) uniform sampler2D texSampler;
+layout(binding = 4) uniform sampler2D occlusionSampler;
+layout(binding = 5) uniform sampler2D metallicRoughnessSampler;
 
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inNormal;
@@ -86,14 +88,16 @@ void main() {
     vec3 N = normalize(inNormal);
     vec3 V = normalize(inCameraPosition - inPosition);
 
-    float roughness = material.roughnessFactor;
+    float roughness = texture(metallicRoughnessSampler, inUV0).g;
+    float metallicness = texture(metallicRoughnessSampler, inUV0).b;
     
     vec3 Lo = vec3(0.0);
     vec3 L = normalize(inLightPosition - inPosition);
-    Lo += BRDF(L, V, N, material.metallicFactor, roughness);
+    Lo += BRDF(L, V, N, metallicness, roughness);
 
     // Combine with ambient
-    vec3 color = texture(texSampler, inUV0).xyz * 0.02;
+    vec3 color = texture(texSampler, inUV0).xyz;
+    color = mix(color, color * texture(occlusionSampler, inUV0).rrr, 1.0f) * 0.04;
 //    vec3 color = vec3(material.baseColorFactor) * 0.02;
     color += Lo;
 

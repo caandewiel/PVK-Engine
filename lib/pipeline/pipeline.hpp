@@ -13,6 +13,7 @@
 #include <vector>
 #include <array>
 #include <map>
+#include <unordered_map>
 #include <vulkan/vulkan.hpp>
 #include <glm/glm.hpp>
 
@@ -28,19 +29,13 @@
 namespace pvk {
     class Pipeline {
     public:
-        Pipeline(vk::RenderPass &renderPass,
-                 vk::Extent2D &swapChainExtent,
-                 pvk::Shader *shader,
-                 vk::CullModeFlags cullModeFlags = vk::CullModeFlagBits::eBack,
-                 bool enableDepth = true);
+        Pipeline() = default;
         ~Pipeline();
+        void setUniformBufferSize(uint8_t descriptorSetIndex, uint8_t descriptorSetBindingIndex, size_t size);
         void registerObject(Object *object);
-        void registerObject(AssimpObject *object);
         void registerTexture(Texture *texture, uint32_t binding);
-        void prepareForRenderStage();
-        void bindToCommandBuffer(vk::CommandBuffer& commandBuffer);
-        void render(pvk::Camera &camera, vk::CommandBuffer &commandBuffer, uint32_t swapChainIndex);
-        
+        void prepare();
+
         vk::Pipeline vulkanPipeline;
         vk::PipelineLayout pipelineLayout;
         
@@ -55,30 +50,19 @@ namespace pvk {
                                                        vk::DescriptorSetLayoutBinding &descriptor,
                                                        uint32_t i);
 
-        void addWriteDescriptorSetUniformBuffer(std::vector<vk::WriteDescriptorSet> &writeDescriptorSets,
-                                                pvk::AssimpMesh *mesh,
-                                                vk::DescriptorSetLayoutBinding &descriptor,
-                                                uint32_t i);
-
-        void addWriteDescriptorSetCombinedImageSampler(std::vector<vk::WriteDescriptorSet> &writeDescriptorSets,
-                                                       pvk::AssimpMesh *mesh,
-                                                       vk::DescriptorSetLayoutBinding &descriptor,
-                                                       uint32_t i);
-
         std::vector<Object*> objects {};
-        std::vector<AssimpObject*> assimpObjects {};
         std::map<uint32_t, Texture*> textures;
-        std::vector<vk::UniqueDescriptorSet> descriptorSets {};
-        
-        vk::Extent2D swapChainExtent;
-        vk::RenderPass renderPass;
-        vk::CullModeFlags cullMode = vk::CullModeFlagBits::eBack;
-        vk::FrontFace frontFace = vk::FrontFace::eCounterClockwise;
-        vk::PolygonMode polygonMode = vk::PolygonMode::eFill;
+
         vk::DescriptorPool descriptorPool;
         vk::DescriptorSetLayout descriptorSetLayout;
-        
-        pvk::Shader* shader;
+        std::vector<vk::DescriptorSetLayout> descriptorSetLayouts;
+        std::vector<std::vector<vk::DescriptorSetLayoutBinding>> descriptorSetLayoutBindingsLookup;
+        std::unordered_map<uint8_t, std::unordered_map<uint8_t, size_t>> descriptorSetLayoutBindingSizesLookup;
+    public:
+        void setDescriptorSetLayouts(const std::vector<vk::DescriptorSetLayout> &newDescriptorSetLayouts);
+
+        void setDescriptorSetLayoutBindingsLookup(
+                const std::vector<std::vector<vk::DescriptorSetLayoutBinding>> &newDescriptorSetLayoutBindingsLookup);
     };
 }
 

@@ -1,0 +1,62 @@
+{
+  "cullingMode": "BACK",
+  "enableDepth": true,
+  "vertexShader": "/Users/christian/PVK-Engine/shaders/base.vert.spv",
+  "fragmentShader": "/Users/christian/PVK-Engine/shaders/base.frag.spv",
+  "descriptorSets": [
+    {
+      "index": 0,
+      "visibility": "NODE",
+      "bindings": [
+        {
+          "name": "UBO",
+          "bindingIndex": 0,
+          "type": "UNIFORM_BUFFER",
+          "stage": "VERTEX_AND_FRAGMENT",
+          "size": 152
+        },
+        {
+          "name": "UBO per node",
+          "bindingIndex": 1,
+          "type": "UNIFORM_BUFFER",
+          "stage": "VERTEX_AND_FRAGMENT",
+          "size": 16516
+        }
+      ]
+    },
+    {
+      "index": 1,
+      "visibility": "PRIMITIVE",
+      "bindings": [
+        {
+          "name": "Material",
+          "bindingIndex": 2,
+          "type": "UNIFORM_BUFFER",
+          "stage": "FRAGMENT",
+          "size": 24
+        },
+        {
+          "name": "Base color map",
+          "bindingIndex": 3,
+          "type": "COMBINED_IMAGE_SAMPLER",
+          "stage": "FRAGMENT",
+          "size": 0
+        },
+        {
+          "name": "Normal color map",
+          "bindingIndex": 4,
+          "type": "COMBINED_IMAGE_SAMPLER",
+          "stage": "FRAGMENT",
+          "size": 0
+        },
+        {
+          "name": "Metallic roughness map",
+          "bindingIndex": 5,
+          "type": "COMBINED_IMAGE_SAMPLER",
+          "stage": "FRAGMENT",
+          "size": 0
+        }
+      ]
+    }
+  ]
+}

@@ -10,6 +10,8 @@
 namespace pvk::gltf {
     struct Material {
         Texture* baseColorTexture{};
+        Texture* metallicRoughnessTexture{};
+        Texture* occlusionTexture{};
         glm::vec4 baseColorFactor{};
         float metallicFactor{};
         float roughnessFactor{};

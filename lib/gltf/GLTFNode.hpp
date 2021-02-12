@@ -41,7 +41,7 @@ namespace pvk::gltf {
             glm::mat4 localMatrix;
             glm::mat4 inverseBindMatrices[256];
             float jointCount;
-        } bufferObject;
+        } bufferObject{};
 
         std::vector<vk::UniqueDescriptorSet> descriptorSets{};
 

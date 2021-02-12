@@ -11,6 +11,8 @@
 #include <cstdio>
 #include <vector>
 #include <glm/glm.hpp>
+#include <vulkan/vulkan.hpp>
+#include <map>
 
 namespace pvk::gltf {
         class Primitive {
@@ -28,6 +30,11 @@ namespace pvk::gltf {
             uint32_t startVertex{};
             uint32_t indexCount{};
             uint32_t vertexCount{};
+
+            std::vector<vk::UniqueDescriptorSet> descriptorSets{};
+            std::map<uint32_t, std::vector<vk::DescriptorBufferInfo>> descriptorBuffersInfo{};
+            std::map<uint32_t, std::vector<vk::Buffer>> uniformBuffers{};
+            std::map<uint32_t, std::vector<vk::DeviceMemory>> uniformBuffersMemory{};
         };
     }
 

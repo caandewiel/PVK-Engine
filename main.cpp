@@ -1,5 +1,4 @@
 #include <cstdio>
-#include <map>
 #include <chrono>
 
 #include "lib/application/application.hpp"
@@ -7,9 +6,6 @@
 class App : public Application {
     pvk::Pipeline *_pipeline;
     pvk::Pipeline *_skyboxPipeline;
-
-    pvk::Shader *_shader;
-    pvk::Shader *_skyboxShader;
 
     pvk::Object *_skyboxObject;
     pvk::Object *_fox;
@@ -37,28 +33,19 @@ class App : public Application {
     } material;
 
     void initialize() override {
-        // Initialize shader
-        _shader = new pvk::Shader("/Users/christian/PVK-Engine/shaders/base.vert.spv",
-                                  "/Users/christian/PVK-Engine/shaders/base.frag.spv",
-                                  {
-                                          {0, pvk::DescriptorType::UNIFORM_BUFFER, pvk::ShaderStage::VERTEX_ONLY,         sizeof(uniformBufferObject)},
-                                          {1, pvk::DescriptorType::UNIFORM_BUFFER, pvk::ShaderStage::VERTEX_ONLY,         sizeof(bufferObject)},
-                                          {2, pvk::DescriptorType::UNIFORM_BUFFER, pvk::ShaderStage::VERTEX_AND_FRAGMENT, sizeof(material)},
-                                          {3, pvk::DescriptorType::COMBINED_IMAGE_SAMPLER, pvk::ShaderStage::FRAGMENT_ONLY, 0},
-                                  });
+        _pipeline = pvk::createPipelineFromDefinition("/Users/christian/PVK-Engine/definitions/pbr.json",
+                                                      renderPass.get(),
+                                                      swapChainExtent);
+        _skyboxPipeline = pvk::createPipelineFromDefinition("/Users/christian/PVK-Engine/definitions/skybox.json",
+                                                            renderPass.get(),
+                                                            swapChainExtent);
 
-        _skyboxShader = new pvk::Shader("/Users/christian/Documents/VulkanHpp/VulkanHpp/shaders/skybox_new.vert.spv",
-                                        "/Users/christian/Documents/VulkanHpp/VulkanHpp/shaders/skybox_new.frag.spv",
-                                        {
-                                                {0, pvk::DescriptorType::UNIFORM_BUFFER,         pvk::ShaderStage::VERTEX_ONLY,   sizeof(uniformBufferObject)},
-                                                {1, pvk::DescriptorType::UNIFORM_BUFFER,         pvk::ShaderStage::VERTEX_ONLY,   sizeof(bufferObject)},
-                                                {2, pvk::DescriptorType::COMBINED_IMAGE_SAMPLER, pvk::ShaderStage::FRAGMENT_ONLY, 0},
-                                        });
+        _pipeline->setUniformBufferSize(0, 0, sizeof(uniformBufferObject));
+        _pipeline->setUniformBufferSize(0, 1, sizeof(bufferObject));
+        _pipeline->setUniformBufferSize(0, 2, sizeof(material));
 
-        // Create pipeline
-        _pipeline = new pvk::Pipeline(renderPass.get(), swapChainExtent, _shader);
-        _skyboxPipeline = new pvk::Pipeline(renderPass.get(), swapChainExtent, _skyboxShader,
-                                            vk::CullModeFlagBits::eFront, false);
+        _skyboxPipeline->setUniformBufferSize(0, 0, sizeof(uniformBufferObject));
+        _skyboxPipeline->setUniformBufferSize(0, 1, sizeof(bufferObject));
 
         // Load model
         auto t1 = std::chrono::high_resolution_clock::now();
@@ -66,8 +53,11 @@ class App : public Application {
         auto t2 = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>( t2 - t1 ).count();
         std::cout << "Loading model took " << duration << "ms";
+
         _pipeline->registerObject(_fox);
         _pipeline->registerTexture(_fox->gltfObject->materials[0]->baseColorTexture, 3);
+        _pipeline->registerTexture(_fox->gltfObject->materials[0]->occlusionTexture, 4);
+        _pipeline->registerTexture(_fox->gltfObject->materials[0]->metallicRoughnessTexture, 5);
 
         // Load skybox
         _skyboxObject = pvk::Object::createFromGLTF(graphicsQueue, "/Users/christian/Downloads/data/models/cube.gltf");
@@ -76,8 +66,8 @@ class App : public Application {
         _skyboxPipeline->registerTexture(&_skyboxTexture, 2);
 
         // Finalize pipeline and prepare for rendering
-        _pipeline->prepareForRenderStage();
-        _skyboxPipeline->prepareForRenderStage();
+        _pipeline->prepare();
+        _skyboxPipeline->prepare();
 
         uniformBufferObject.view = camera->getViewMatrix();
         uniformBufferObject.projection = glm::perspective(glm::radians(30.0f),
@@ -104,8 +94,7 @@ class App : public Application {
     void update() override {
         uniformBufferObject.view = camera->getViewMatrix();
         uniformBufferObject.cameraPosition = camera->position;
-        uniformBufferObject.lightPosition =
-                uniformBufferObject.lightPosition + glm::vec3(0, 0, 100.0f * this->deltaTime);
+        uniformBufferObject.lightPosition += glm::vec3(0, 0, 10.0f * this->deltaTime);
 
         _fox->updateUniformBuffer(0, sizeof(uniformBufferObject), &uniformBufferObject);
         _skyboxObject->updateUniformBuffer(0, sizeof(uniformBufferObject), &uniformBufferObject);
@@ -160,8 +149,6 @@ class App : public Application {
         delete _skyboxObject;
         delete _pipeline;
         delete _skyboxPipeline;
-        delete _shader;
-        delete _skyboxShader;
     }
 };
 

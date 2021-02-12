@@ -8,7 +8,7 @@
 #ifndef KTXLoader_hpp
 #define KTXLoader_hpp
 
-#include <stdio.h>
+#include <cstdio>
 #include <string>
 #include <gli.hpp>
 #include <vulkan/vulkan.hpp>

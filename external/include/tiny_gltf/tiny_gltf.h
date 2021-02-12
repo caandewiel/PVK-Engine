@@ -4831,7 +4831,7 @@ static bool ParseMaterial(Material *material, std::string *err, const json &o,
 
   {
     json_const_iterator it;
-    if (FindMember(o, "normalTexture", it)) {
+    if (FindMember(o, "occlusionTexture", it)) {
       ParseNormalTextureInfo(&material->normalTexture, err, GetValue(it),
                              store_original_json_for_extras_and_extensions);
     }
@@ -6936,7 +6936,7 @@ static void SerializeGltfMaterial(Material &material, json &o) {
   if (material.normalTexture.index > -1) {
     json texinfo;
     SerializeGltfNormalTextureInfo(material.normalTexture, texinfo);
-    JsonAddMember(o, "normalTexture", std::move(texinfo));
+    JsonAddMember(o, "occlusionTexture", std::move(texinfo));
   }
 
   if (material.occlusionTexture.index > -1) {

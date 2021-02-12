@@ -497,18 +497,27 @@ namespace pvk {
     void GLTFLoader::loadMaterials(tinygltf::Model &model, vk::Queue &graphicsQueue, gltf::Object *object) {
         auto materials = std::vector<gltf::Material*>(model.materials.size());
 
+        auto loadTexture = [&](const int8_t textureIndex) {
+            auto _texture = new Texture();
+
+            if (textureIndex > -1) {
+                auto &baseColorTexture = model.textures[textureIndex];
+                auto &baseColorTextureImage = model.images[baseColorTexture.source];
+                buffer::texture::create(graphicsQueue, baseColorTextureImage, *_texture);
+            } else {
+                buffer::texture::createEmpty(graphicsQueue, *_texture);
+            }
+
+            return _texture;
+        };
+
         for (auto i = 0; i < model.materials.size(); i++) {
             auto &material = model.materials[i];
             auto _material = new gltf::Material();
-            auto _texture = new Texture();
-            auto &baseColorTextureInfo = material.pbrMetallicRoughness.baseColorTexture;
 
-            if (baseColorTextureInfo.index > -1) {
-                auto &baseColorTexture = model.textures[baseColorTextureInfo.index];
-                auto &baseColorTextureImage = model.images[baseColorTexture.source];
-                buffer::texture::create(graphicsQueue, baseColorTextureImage, *_texture);
-            }
-            _material->baseColorTexture = _texture;
+            _material->baseColorTexture = loadTexture(material.pbrMetallicRoughness.baseColorTexture.index);
+            _material->metallicRoughnessTexture = loadTexture(material.pbrMetallicRoughness.metallicRoughnessTexture.index);
+            _material->occlusionTexture = loadTexture(material.occlusionTexture.index);
 
             materials[i] = _material;
         }

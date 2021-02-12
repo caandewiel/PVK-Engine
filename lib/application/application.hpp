@@ -34,6 +34,7 @@
 #include "../device/physicalDevice.hpp"
 #include "../device/logicalDevice.hpp"
 #include "../pipeline/pipelineBuilder.hpp"
+#include "../pipeline/pipelineParser.hpp"
 #include "../gltf/GLTFLoader.hpp"
 #include "../mesh/vertex.hpp"
 #include "../gltf/GLTFObject.hpp"
