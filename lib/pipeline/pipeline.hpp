@@ -32,7 +32,7 @@ namespace pvk {
         Pipeline() = default;
         ~Pipeline();
         void setUniformBufferSize(uint8_t descriptorSetIndex, uint8_t descriptorSetBindingIndex, size_t size);
-        void registerObject(Object *object);
+        void registerObject(std::shared_ptr<Object> object);
         void registerTexture(Texture *texture, uint32_t binding);
         void prepare();
 
@@ -41,19 +41,20 @@ namespace pvk {
         
     private:
         void addWriteDescriptorSetUniformBuffer(std::vector<vk::WriteDescriptorSet> &writeDescriptorSets,
-                                                pvk::gltf::Node *node,
+                                                gltf::Node &node,
                                                 vk::DescriptorSetLayoutBinding &descriptor,
                                                 uint32_t i);
         
         void addWriteDescriptorSetCombinedImageSampler(std::vector<vk::WriteDescriptorSet> &writeDescriptorSets,
-                                                       pvk::gltf::Node *node,
-                                                       vk::DescriptorSetLayoutBinding &descriptor,
+                                                       const gltf::Node &node,
+                                                       const vk::DescriptorSetLayoutBinding &descriptor,
                                                        uint32_t i);
 
-        std::vector<Object*> objects {};
+        std::vector<std::shared_ptr<Object>> objects {};
         std::map<uint32_t, Texture*> textures;
 
         vk::DescriptorPool descriptorPool;
+        std::unordered_map<uint8_t, vk::DescriptorPool> descriptorPools;
         vk::DescriptorSetLayout descriptorSetLayout;
         std::vector<vk::DescriptorSetLayout> descriptorSetLayouts;
         std::vector<std::vector<vk::DescriptorSetLayoutBinding>> descriptorSetLayoutBindingsLookup;
@@ -63,6 +64,13 @@ namespace pvk {
 
         void setDescriptorSetLayoutBindingsLookup(
                 const std::vector<std::vector<vk::DescriptorSetLayoutBinding>> &newDescriptorSetLayoutBindingsLookup);
+
+        std::vector<vk::WriteDescriptorSet> &
+        initializeDescriptorSet(uint32_t numberOfSwapchainImages,
+                                std::vector<vk::WriteDescriptorSet> &writeDescriptorSets,
+                                gltf::Node &node);
+
+        void getNumberOfResources(uint32_t &numberOfUniformBuffers, uint32_t &numberOfCombinedImageSamplers);
     };
 }
 

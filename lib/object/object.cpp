@@ -37,8 +37,8 @@ namespace pvk {
         }
     }
 
-    Object *Object::createFromGLTF(vk::Queue &graphicsQueue, const std::string &filename) {
-        auto *object = new Object();
+    std::unique_ptr<Object> Object::createFromGLTF(vk::Queue &graphicsQueue, const std::string &filename) {
+        auto object = std::unique_ptr<Object>(new Object());
 
         object->gltfObject = pvk::GLTFLoader::loadObject(graphicsQueue, filename);
 
@@ -56,23 +56,23 @@ namespace pvk {
     }
 
     void Object::updateUniformBufferPerNode(uint32_t bindingIndex,
-                                            const std::function<void(pvk::gltf::Object *object,
-                                                                     pvk::gltf::Node *node,
+                                            const std::function<void(pvk::gltf::Object &object,
+                                                                     pvk::gltf::Node &node,
                                                                      vk::DeviceMemory &memory)> &function) const {
         for (auto &node : this->gltfObject->nodeLookup) {
             auto &uniformBuffersMemory = node.second->uniformBuffersMemory[bindingIndex];
 
             for (auto &uniformBufferMemory : uniformBuffersMemory) {
-                function(this->gltfObject, node.second, uniformBufferMemory);
+                function(*this->gltfObject, *node.second, uniformBufferMemory);
             }
         }
     }
 
-    std::vector<gltf::Node *> Object::getNodes() const {
+    const std::vector<std::shared_ptr<gltf::Node>> & Object::getNodes() const {
         return this->gltfObject->nodes;
     }
 
-    std::vector<gltf::Animation *> Object::getAnimations() const {
+    const std::vector<gltf::Animation *> & Object::getAnimations() const {
         return this->gltfObject->animations;
     }
 }

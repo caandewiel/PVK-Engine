@@ -25,13 +25,13 @@ namespace pvk::gltf {
 
         ~Node();
 
-        glm::mat4 getGlobalMatrix() const;
-        glm::mat4 getLocalMatrix() const;
+        [[nodiscard]] glm::mat4 getGlobalMatrix() const;
+        [[nodiscard]] glm::mat4 getLocalMatrix() const;
 
-        std::vector<Node *> children{};
-        std::vector<Primitive *> primitives{};
-        Mesh *mesh{};
-        Node *parent = nullptr;
+        std::vector<std::shared_ptr<Node>> children;
+        std::vector<std::unique_ptr<Primitive>> primitives;
+        std::unique_ptr<Mesh> mesh;
+        std::shared_ptr<Node> parent;
         int skinIndex = -1;
         int nodeIndex = -1;
         std::string name;

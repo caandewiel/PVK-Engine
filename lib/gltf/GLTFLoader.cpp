@@ -1,73 +1,110 @@
-//  Heavily inspired on: https://github.com/SaschaWillems/Vulkan/blob/master/base/VulkanglTFModel.cpp
+//  Heavily inspired on: https://github.com/SaschaWillems/Vulkan/blob/master/base/VulkanglTFmodel->cpp
 //  PvkGLTFLoader.cpp
 //  PVK
 //
 //  Created by Christian aan de Wiel on 02/01/2021.
 //
 
+#include <numeric>
+#include <utility>
 #include "GLTFLoader.hpp"
 
 namespace pvk {
-    inline bool endsWith(std::string const &value, std::string const &ending) {
-        if (ending.size() > value.size()) return false;
+    inline auto endsWith(std::string const &value, std::string const &ending) -> bool {
+        if (ending.size() > value.size()) {
+            return false;
+        }
+
         return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
     }
 
-    gltf::Object *GLTFLoader::loadObject(vk::Queue &graphicsQueue,
-                                         const std::string &filePath
-    ) {
+    auto GLTFLoader::loadObject(vk::Queue &graphicsQueue,
+                                const std::string &filePath)
+    -> std::unique_ptr<gltf::Object> {
         tinygltf::TinyGLTF loader;
-        tinygltf::Model model;
+        auto model = std::make_shared<tinygltf::Model>();
         std::string error;
         std::string warning;
 
         std::vector<Vertex> vertices;
         std::vector<uint32_t> indices;
 
-        bool isModelLoaded;
+        bool isModelLoaded = false;
+
+        auto t1 = std::chrono::high_resolution_clock::now();
 
         if (endsWith(filePath, EXTENSION_GLB)) {
-            isModelLoaded = loader.LoadBinaryFromFile(&model, &error, &warning, filePath);
+            isModelLoaded = loader.LoadBinaryFromFile(model.get(), &error, &warning, filePath);
         } else {
-            isModelLoaded = loader.LoadASCIIFromFile(&model, &error, &warning, filePath);
+            isModelLoaded = loader.LoadASCIIFromFile(model.get(), &error, &warning, filePath);
         }
+
+        auto t2 = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
+        std::cout << "[TINYGLTF] Loading model took " << duration << "ms" << std::endl;
 
         if (!isModelLoaded) {
             throw std::runtime_error("Could not load glTF model");
         }
+        t1 = std::chrono::high_resolution_clock::now();
 
-        auto object = new gltf::Object();
-        object->nodes = GLTFLoader::loadNodes(model, graphicsQueue, object);
+        auto object = std::make_unique<gltf::Object>();
+
+        auto primitiveLookup = GLTFLoader::loadPrimitives(model, graphicsQueue, *object);
+        auto vertexBuffer = createVertexBuffer(graphicsQueue, object);
+        auto indexBuffer = createIndexBuffer(graphicsQueue, object);
+
+        object->nodes = GLTFLoader::loadNodes(model, primitiveLookup, graphicsQueue, *object);
         object->nodeLookup = GLTFLoader::initializeNodeLookupTable(object->nodes);
         object->primitiveLookup = GLTFLoader::initializePrimitiveLookupTable(object->nodes);
         object->animations = GLTFLoader::loadAnimations(model, object->nodeLookup);
-        GLTFLoader::loadMaterials(model, graphicsQueue, object);
+        GLTFLoader::loadMaterials(model, graphicsQueue, *object);
 
-        pvk::buffer::vertex::create(graphicsQueue,
-                                    object->vertexBuffer,
-                                    object->vertexBufferMemory,
-                                    object->vertices);
+        vertexBuffer.get();
+        indexBuffer.get();
 
-        if (!object->indices.empty()) {
-            pvk::buffer::index::create(graphicsQueue,
-                                       object->indexBuffer,
-                                       object->indexBufferMemory,
-                                       object->indices);
-        }
+        t2 = std::chrono::high_resolution_clock::now();
+        duration = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
+        std::cout << "[PVK] Loading model took " << duration << "ms" << std::endl;
 
         return object;
     }
 
-    std::vector<gltf::Node *> GLTFLoader::loadNodes(tinygltf::Model &model,
-                                                    vk::Queue &graphicsQueue,
-                                                    gltf::Object *&object
-    ) {
-        const auto &scene = model.scenes[model.defaultScene];
+    auto GLTFLoader::createVertexBuffer(vk::Queue &graphicsQueue,
+                                        const std::unique_ptr<gltf::Object> &object
+    ) -> std::future<void> {
+        return std::async(std::launch::async, [&, &object = *object] {
+            buffer::vertex::create(graphicsQueue,
+                                   object.vertexBuffer,
+                                   object.vertexBufferMemory,
+                                   object.vertices);
+        });
+    }
 
-        std::vector<gltf::Node *> nodes{};
+    auto GLTFLoader::createIndexBuffer(vk::Queue &graphicsQueue,
+                                       const std::unique_ptr<gltf::Object> &object
+    ) -> std::future<void> {
+        return std::async(std::launch::async, [&, &object = *object] {
+            if (!object.indices.empty()) {
+                buffer::index::create(graphicsQueue,
+                                      object.indexBuffer,
+                                      object.indexBufferMemory,
+                                      object.indices);
+            }
+        });
+    }
+
+    auto GLTFLoader::loadNodes(const std::shared_ptr<tinygltf::Model> &model,
+                               std::vector<std::vector<std::unique_ptr<gltf::Primitive>>> &primitiveLookup,
+                               vk::Queue &graphicsQueue,
+                               gltf::Object &object)
+    -> std::vector<std::shared_ptr<gltf::Node>> {
+        const auto &scene = model->scenes[model->defaultScene];
+
+        std::vector<std::shared_ptr<gltf::Node>> nodes{};
 
         for (const auto &nodeIndex : scene.nodes) {
-            auto _node = GLTFLoader::loadNode(model, nodeIndex, graphicsQueue, object);
+            auto _node = GLTFLoader::loadNode(model, primitiveLookup, nodeIndex, graphicsQueue, object);
 
             if (_node->children.empty() && _node->mesh == nullptr) {
                 // Don't add this, most likely light or camera.
@@ -79,25 +116,28 @@ namespace pvk {
         return nodes;
     }
 
-    gltf::Node *GLTFLoader::loadNode(tinygltf::Model &model,
-                                     int nodeIndex,
-                                     vk::Queue &graphicsQueue,
-                                     gltf::Object *&object,
-                                     gltf::Node *parent) {
-        auto &node = model.nodes[nodeIndex];
+    auto GLTFLoader::loadNode(const std::shared_ptr<tinygltf::Model> &model,
+                              std::vector<std::vector<std::unique_ptr<gltf::Primitive>>> &primitiveLookup,
+                              uint32_t nodeIndex,
+                              vk::Queue &graphicsQueue,
+                              gltf::Object &object,
+                              std::shared_ptr<gltf::Node> parent)
+    -> std::shared_ptr<gltf::Node> {
+        auto &node = model->nodes[nodeIndex];
 
-        auto *resultNode = new gltf::Node();
-        resultNode->parent = parent;
+        auto resultNode = std::make_shared<gltf::Node>();
+        resultNode->parent = std::move(parent);
         resultNode->skinIndex = node.skin;
         resultNode->nodeIndex = nodeIndex;
-        resultNode->matrix = glm::mat4(1.0f);
+        resultNode->matrix = glm::mat4(1.0F);
         resultNode->name = node.name;
 
         // First load all children recursively
         resultNode->children.reserve(node.children.size());
 
         for (auto &child : node.children) {
-            resultNode->children.emplace_back(loadNode(model, child, graphicsQueue, object, resultNode));
+            resultNode->children.emplace_back(
+                    loadNode(model, primitiveLookup, child, graphicsQueue, object, resultNode));
         }
 
         if (node.translation.size() == 3) {
@@ -116,7 +156,7 @@ namespace pvk {
         if (node.matrix.size() == 16) {
             resultNode->matrix = glm::make_mat4x4(node.matrix.data());
         } else {
-            resultNode->matrix = glm::mat4(1.0f);
+            resultNode->matrix = glm::mat4(1.0F);
         }
 
         // Filter out all lights and cameras
@@ -124,47 +164,18 @@ namespace pvk {
             return resultNode;
         }
 
-        resultNode->mesh = new Mesh();
+        auto &mesh = model->meshes[node.mesh];
 
-        auto &mesh = model.meshes[node.mesh];
+        resultNode->mesh = std::make_unique<Mesh>();
+        resultNode->primitives.reserve(mesh.primitives.size());
 
-        for (auto &primitive : mesh.primitives) {
-            auto startVertex = static_cast<uint32_t>(object->vertices.size());
-            auto startIndex = static_cast<uint32_t>(object->indices.size());
-
-            auto *resultPrimitive = new gltf::Primitive();
-
-            for (size_t index = 0;
-                 index < model.accessors[primitive.attributes.find("POSITION")->second].count; index++) {
-                Vertex vertex{};
-
-                GLTFLoader::loadVertexPosition(model, primitive, vertex, index);
-                GLTFLoader::loadVertexNormal(model, primitive, vertex, index);
-                GLTFLoader::loadVertexUV0(model, primitive, vertex, index);
-                GLTFLoader::loadVertexUV1(model, primitive, vertex, index);
-                GLTFLoader::loadVertexJoints(model, primitive, vertex, index);
-                GLTFLoader::loadVertexWeights(model, primitive, vertex, index);
-                GLTFLoader::loadVertexColor(model, primitive, vertex, index);
-
-                object->vertices.push_back(vertex);
-            }
-
-            // Load indices
-            GLTFLoader::loadIndices(object->indices, model, primitive, startVertex);
-            resultPrimitive->startIndex = startIndex;
-            resultPrimitive->startVertex = startVertex;
-            resultPrimitive->indexCount = static_cast<uint32_t>(model.accessors[primitive.indices].count);
-            resultPrimitive->vertexCount = static_cast<uint32_t>(model.accessors[primitive.attributes.find(
-                    "POSITION")->second].count);
-            GLTFLoader::loadMaterial(model, resultPrimitive, primitive.material);
-
-            // Add primitive to node
-            resultNode->primitives.push_back(resultPrimitive);
+        for (auto &&primitive : primitiveLookup[node.mesh]) {
+            resultNode->primitives.emplace_back(std::move(primitive));
         }
 
         if (node.skin > -1) {
-            auto &skin = model.skins[node.skin];
-            auto _skin = new gltf::Skin();
+            auto &skin = model->skins[node.skin];
+            auto _skin = std::make_shared<gltf::Skin>();
 
             _skin->skinIndex = node.skin;
             _skin->jointsIndices.reserve(skin.joints.size());
@@ -175,9 +186,9 @@ namespace pvk {
 
             // Check whether there are inverse bind matrices present
             if (skin.inverseBindMatrices > -1) {
-                const auto &accessor = model.accessors[skin.inverseBindMatrices];
-                const auto &bufferView = model.bufferViews[accessor.bufferView];
-                const auto &buffer = model.buffers[bufferView.buffer];
+                const auto &accessor = model->accessors[skin.inverseBindMatrices];
+                const auto &bufferView = model->bufferViews[accessor.bufferView];
+                const auto &buffer = model->buffers[bufferView.buffer];
 
                 _skin->skeletonRoot = resultNode;
                 _skin->inverseBindMatrices.resize(accessor.count);
@@ -186,23 +197,23 @@ namespace pvk {
                        accessor.count * sizeof(glm::mat4));
             }
 
-            object->skinLookup[node.skin] = _skin;
+            object.skinLookup[node.skin] = _skin;
         }
 
         return resultNode;
     }
 
-    void GLTFLoader::loadVertexPosition(const tinygltf::Model &model,
+    void GLTFLoader::loadVertexPosition(const std::shared_ptr<tinygltf::Model> &model,
                                         const tinygltf::Primitive &primitive,
                                         Vertex &vertex,
                                         const uint32_t index) {
         // The position attribute is mandatory.
-        const auto &positionAccessor = model.accessors[primitive.attributes.find(FIELD_VERTEX_POSITION)->second];
-        const auto &positionView = model.bufferViews[positionAccessor.bufferView];
+        const auto &positionAccessor = model->accessors[primitive.attributes.find(FIELD_VERTEX_POSITION)->second];
+        const auto &positionView = model->bufferViews[positionAccessor.bufferView];
 
         // Determine byte stride
-        uint32_t byteStride;
-        if (positionAccessor.ByteStride(positionView)) {
+        uint32_t byteStride = 0;
+        if (positionAccessor.ByteStride(positionView) > 1) {
             byteStride = positionAccessor.ByteStride(positionView);
         } else {
             byteStride = tinygltf::GetComponentSizeInBytes(TINYGLTF_TYPE_VEC3);
@@ -211,7 +222,7 @@ namespace pvk {
         auto dataOffset = positionAccessor.byteOffset + positionView.byteOffset;
 
         if (byteStride == 12) {
-            auto buffer = reinterpret_cast<const float *>(&(model.buffers[positionView.buffer].data[dataOffset]));
+            const auto *buffer = reinterpret_cast<const float *>(&(model->buffers[positionView.buffer].data[dataOffset]));
             const float *position = &buffer[index * static_cast<uint32_t>(byteStride / sizeof(buffer[0]))];
             vertex.pos = glm::make_vec3(position);
         } else {
@@ -219,7 +230,7 @@ namespace pvk {
         }
     }
 
-    void GLTFLoader::loadVertexNormal(const tinygltf::Model &model,
+    void GLTFLoader::loadVertexNormal(const std::shared_ptr<tinygltf::Model> &model,
                                       const tinygltf::Primitive &primitive,
                                       Vertex &vertex,
                                       const uint32_t index) {
@@ -228,12 +239,12 @@ namespace pvk {
             return;
         }
 
-        const auto &normalAccessor = model.accessors[primitive.attributes.find(FIELD_VERTEX_NORMAL)->second];
-        const auto &normalView = model.bufferViews[normalAccessor.bufferView];
+        const auto &normalAccessor = model->accessors[primitive.attributes.find(FIELD_VERTEX_NORMAL)->second];
+        const auto &normalView = model->bufferViews[normalAccessor.bufferView];
 
         // Determine byte stride
-        uint32_t byteStride;
-        if (normalAccessor.ByteStride(normalView)) {
+        uint32_t byteStride = 0;
+        if (normalAccessor.ByteStride(normalView) > -1) {
             byteStride = normalAccessor.ByteStride(normalView);
         } else {
             byteStride = tinygltf::GetComponentSizeInBytes(TINYGLTF_TYPE_VEC3);
@@ -242,7 +253,7 @@ namespace pvk {
         auto dataOffset = normalAccessor.byteOffset + normalView.byteOffset;
 
         if (byteStride == 12) {
-            auto buffer = reinterpret_cast<const float *>(&(model.buffers[normalView.buffer].data[dataOffset]));
+            const auto *buffer = reinterpret_cast<const float *>(&(model->buffers[normalView.buffer].data[dataOffset]));
             const float *normal = &buffer[index * static_cast<uint32_t>(byteStride / sizeof(buffer[0]))];
             vertex.normal = glm::make_vec3(normal);
         } else {
@@ -252,40 +263,40 @@ namespace pvk {
         }
     }
 
-    void GLTFLoader::loadVertexColor(const tinygltf::Model &model,
+    void GLTFLoader::loadVertexColor(const std::shared_ptr<tinygltf::Model> &model,
                                      const tinygltf::Primitive &primitive,
                                      Vertex &vertex,
                                      const uint32_t index) {
         if (primitive.attributes.find(FIELD_VERTEX_COLOR_0) == primitive.attributes.end()) {
             // Make the default color of a mesh white, so it's easily visible.
-            vertex.color = glm::vec3(1.0f);
+            vertex.color = glm::vec3(1.0F);
 
             return;
         }
 
-        const auto &colorAccessor = model.accessors[primitive.attributes.find(FIELD_VERTEX_COLOR_0)->second];
-        const auto &colorView = model.bufferViews[colorAccessor.bufferView];
+        const auto &colorAccessor = model->accessors[primitive.attributes.find(FIELD_VERTEX_COLOR_0)->second];
+        const auto &colorView = model->bufferViews[colorAccessor.bufferView];
 
         // Determine byte stride
-        uint32_t byteStride;
-        if (colorAccessor.ByteStride(colorView)) {
+        uint32_t byteStride = 0;
+        if (colorAccessor.ByteStride(colorView) > -1) {
             byteStride = colorAccessor.ByteStride(colorView);
         } else {
             byteStride = tinygltf::GetComponentSizeInBytes(TINYGLTF_TYPE_VEC3);
         }
 
         auto dataOffset = colorAccessor.byteOffset + colorView.byteOffset;
-        auto buffer = reinterpret_cast<const float *>(&(model.buffers[colorView.buffer].data[dataOffset]));
+        const auto *buffer = reinterpret_cast<const float *>(&(model->buffers[colorView.buffer].data[dataOffset]));
 
-        switch (model.accessors[primitive.attributes.find("COLOR_0")->second].type) {
+        switch (model->accessors[primitive.attributes.find("COLOR_0")->second].type) {
             case TINYGLTF_TYPE_VEC3: {
-                const float *color = &buffer[index * 3];
+                auto color = std::span<const float>(buffer, 3);
                 vertex.color = glm::vec3(color[0], color[1], color[2]);
 
                 break;
             }
             case TINYGLTF_TYPE_VEC4: {
-                const float *color = &buffer[index * 4];
+                auto color = std::span<const float>(buffer, 4);
                 vertex.color = glm::vec3(color[0], color[1], color[2]);
 
                 break;
@@ -297,7 +308,7 @@ namespace pvk {
             }
         }
 
-        auto colorBuffer = reinterpret_cast<const float *>(&(model.buffers[colorView.buffer].data[dataOffset]));
+        const auto *colorBuffer = reinterpret_cast<const float *>(&(model->buffers[colorView.buffer].data[dataOffset]));
 
         if (byteStride == 12) {
             const float *color = &colorBuffer[index * static_cast<uint32_t>(byteStride / sizeof(colorBuffer[0]))];
@@ -313,7 +324,7 @@ namespace pvk {
     }
 
 
-    void GLTFLoader::loadVertexUV0(const tinygltf::Model &model,
+    void GLTFLoader::loadVertexUV0(const std::shared_ptr<tinygltf::Model> &model,
                                    const tinygltf::Primitive &primitive,
                                    Vertex &vertex,
                                    const uint32_t index) {
@@ -322,12 +333,12 @@ namespace pvk {
             return;
         }
 
-        const auto &normalAccessor = model.accessors[primitive.attributes.find(FIELD_VERTEX_TEXCOORD_0)->second];
-        const auto &normalView = model.bufferViews[normalAccessor.bufferView];
+        const auto &normalAccessor = model->accessors[primitive.attributes.find(FIELD_VERTEX_TEXCOORD_0)->second];
+        const auto &normalView = model->bufferViews[normalAccessor.bufferView];
 
         // Determine byte stride
-        uint32_t byteStride;
-        if (normalAccessor.ByteStride(normalView)) {
+        uint32_t byteStride = 0;
+        if (normalAccessor.ByteStride(normalView) > -1) {
             byteStride = normalAccessor.ByteStride(normalView);
         } else {
             byteStride = tinygltf::GetComponentSizeInBytes(TINYGLTF_TYPE_VEC2);
@@ -336,7 +347,7 @@ namespace pvk {
         auto dataOffset = normalAccessor.byteOffset + normalView.byteOffset;
 
         if (byteStride == 8) {
-            auto buffer = reinterpret_cast<const float *>(&(model.buffers[normalView.buffer].data[dataOffset]));
+            const auto *buffer = reinterpret_cast<const float *>(&(model->buffers[normalView.buffer].data[dataOffset]));
             const float *uv0 = &buffer[index * static_cast<uint32_t>(byteStride / sizeof(buffer[0]))];
             vertex.UV0 = glm::make_vec2(uv0);
         } else {
@@ -344,7 +355,7 @@ namespace pvk {
         }
     }
 
-    void GLTFLoader::loadVertexUV1(const tinygltf::Model &model,
+    void GLTFLoader::loadVertexUV1(const std::shared_ptr<tinygltf::Model> &model,
                                    const tinygltf::Primitive &primitive,
                                    Vertex &vertex,
                                    const uint32_t index) {
@@ -353,12 +364,12 @@ namespace pvk {
             return;
         }
 
-        const auto &uv1Accessor = model.accessors[primitive.attributes.find(FIELD_VERTEX_TEXCOORD_1)->second];
-        const auto &uv1View = model.bufferViews[uv1Accessor.bufferView];
+        const auto &uv1Accessor = model->accessors[primitive.attributes.find(FIELD_VERTEX_TEXCOORD_1)->second];
+        const auto &uv1View = model->bufferViews[uv1Accessor.bufferView];
 
         // Determine byte stride
-        uint32_t byteStride;
-        if (uv1Accessor.ByteStride(uv1View)) {
+        uint32_t byteStride = 0;
+        if (uv1Accessor.ByteStride(uv1View) > -1) {
             byteStride = uv1Accessor.ByteStride(uv1View);
         } else {
             byteStride = tinygltf::GetComponentSizeInBytes(TINYGLTF_TYPE_VEC2);
@@ -367,7 +378,7 @@ namespace pvk {
         auto dataOffset = uv1Accessor.byteOffset + uv1View.byteOffset;
 
         if (byteStride == 8) {
-            auto buffer = reinterpret_cast<const float *>(&(model.buffers[uv1View.buffer].data[dataOffset]));
+            const auto *buffer = reinterpret_cast<const float *>(&(model->buffers[uv1View.buffer].data[dataOffset]));
             const float *uv1 = &buffer[index * static_cast<uint32_t>(byteStride / sizeof(buffer[0]))];
             vertex.UV1 = glm::make_vec2(uv1);
         } else {
@@ -375,7 +386,7 @@ namespace pvk {
         }
     }
 
-    void GLTFLoader::loadVertexJoints(const tinygltf::Model &model,
+    void GLTFLoader::loadVertexJoints(const std::shared_ptr<tinygltf::Model> &model,
                                       const tinygltf::Primitive &primitive,
                                       Vertex &vertex,
                                       const uint32_t index) {
@@ -384,28 +395,27 @@ namespace pvk {
             return;
         }
 
-        const auto &jointAccessor = model.accessors[primitive.attributes.find(FIELD_VERTEX_JOINTS_0)->second];
-        const auto &jointView = model.bufferViews[jointAccessor.bufferView];
+        const auto &jointAccessor = model->accessors[primitive.attributes.find(FIELD_VERTEX_JOINTS_0)->second];
+        const auto &jointView = model->bufferViews[jointAccessor.bufferView];
 
         // Determine byte stride
-        uint32_t byteStride;
-        if (jointAccessor.ByteStride(jointView)) {
+        uint32_t byteStride = 0;
+        if (jointAccessor.ByteStride(jointView) > -1) {
             byteStride = jointAccessor.ByteStride(jointView);
         } else {
             byteStride = tinygltf::GetComponentSizeInBytes(TINYGLTF_TYPE_VEC4);
         }
 
         auto dataOffset = jointAccessor.byteOffset + jointView.byteOffset;
-
         switch (byteStride) {
             case 4: {
-                auto buffer = reinterpret_cast<const uint8_t *>(&(model.buffers[jointView.buffer].data[dataOffset]));
+                auto buffer = reinterpret_cast<const uint8_t *>(&(model->buffers[jointView.buffer].data[dataOffset]));
                 const uint8_t *joint = &buffer[index * static_cast<uint32_t>(byteStride / sizeof(buffer[0]))];
                 vertex.joint = glm::ivec4(joint[0], joint[1], joint[2], joint[3]);
                 break;
             }
             case 8: {
-                auto buffer = reinterpret_cast<const uint16_t *>(&(model.buffers[jointView.buffer].data[dataOffset]));
+                auto buffer = reinterpret_cast<const uint16_t *>(&(model->buffers[jointView.buffer].data[dataOffset]));
                 const uint16_t *joint = &buffer[index * static_cast<uint32_t>(byteStride / sizeof(buffer[0]))];
                 vertex.joint = glm::ivec4(joint[0], joint[1], joint[2], joint[3]);
                 break;
@@ -416,7 +426,7 @@ namespace pvk {
         }
     }
 
-    void GLTFLoader::loadVertexWeights(const tinygltf::Model &model,
+    void GLTFLoader::loadVertexWeights(const std::shared_ptr<tinygltf::Model> &model,
                                        const tinygltf::Primitive &primitive,
                                        Vertex &vertex,
                                        const uint32_t index) {
@@ -425,12 +435,12 @@ namespace pvk {
             return;
         }
 
-        const auto &weightAccessor = model.accessors[primitive.attributes.find(FIELD_VERTEX_WEIGHTS_0)->second];
-        const auto &weightView = model.bufferViews[weightAccessor.bufferView];
+        const auto &weightAccessor = model->accessors[primitive.attributes.find(FIELD_VERTEX_WEIGHTS_0)->second];
+        const auto &weightView = model->bufferViews[weightAccessor.bufferView];
 
         // Determine byte stride
-        uint32_t byteStride;
-        if (weightAccessor.ByteStride(weightView)) {
+        uint32_t byteStride = 0;
+        if (weightAccessor.ByteStride(weightView) > -1) {
             byteStride = weightAccessor.ByteStride(weightView);
         } else {
             byteStride = tinygltf::GetComponentSizeInBytes(TINYGLTF_TYPE_VEC4);
@@ -439,7 +449,7 @@ namespace pvk {
         auto dataOffset = weightAccessor.byteOffset + weightView.byteOffset;
 
         if (byteStride == 16) {
-            auto buffer = reinterpret_cast<const float *>(&(model.buffers[weightView.buffer].data[dataOffset]));
+            const auto *buffer = reinterpret_cast<const float *>(&(model->buffers[weightView.buffer].data[dataOffset]));
             const float *weight = &buffer[index * static_cast<uint32_t>(byteStride / sizeof(buffer[0]))];
             vertex.weight = glm::make_vec4(weight);
         } else {
@@ -448,7 +458,7 @@ namespace pvk {
     }
 
     void GLTFLoader::loadIndices(std::vector<uint32_t> &indices,
-                                 tinygltf::Model &model,
+                                 const std::shared_ptr<tinygltf::Model> &model,
                                  tinygltf::Primitive &primitive,
                                  uint32_t &vertexStart) {
         if (primitive.indices == -1) {
@@ -456,9 +466,9 @@ namespace pvk {
             return;
         }
 
-        const tinygltf::Accessor &indexAccessor = model.accessors[primitive.indices];
-        const tinygltf::BufferView &indexBufferView = model.bufferViews[indexAccessor.bufferView];
-        const tinygltf::Buffer &indexBuffer = model.buffers[indexBufferView.buffer];
+        const tinygltf::Accessor &indexAccessor = model->accessors[primitive.indices];
+        const tinygltf::BufferView &indexBufferView = model->bufferViews[indexAccessor.bufferView];
+        const tinygltf::Buffer &indexBuffer = model->buffers[indexBufferView.buffer];
 
         switch (indexAccessor.componentType) {
             case TINYGLTF_PARAMETER_TYPE_UNSIGNED_INT: {
@@ -494,15 +504,17 @@ namespace pvk {
         }
     }
 
-    void GLTFLoader::loadMaterials(tinygltf::Model &model, vk::Queue &graphicsQueue, gltf::Object *object) {
-        auto materials = std::vector<gltf::Material*>(model.materials.size());
+    void GLTFLoader::loadMaterials(const std::shared_ptr<tinygltf::Model> &model,
+                                   vk::Queue &graphicsQueue,
+                                   gltf::Object &object) {
+        auto materials = std::vector<gltf::Material *>(model->materials.size());
 
         auto loadTexture = [&](const int8_t textureIndex) {
             auto _texture = new Texture();
 
             if (textureIndex > -1) {
-                auto &baseColorTexture = model.textures[textureIndex];
-                auto &baseColorTextureImage = model.images[baseColorTexture.source];
+                auto &baseColorTexture = model->textures[textureIndex];
+                auto &baseColorTextureImage = model->images[baseColorTexture.source];
                 buffer::texture::create(graphicsQueue, baseColorTextureImage, *_texture);
             } else {
                 buffer::texture::createEmpty(graphicsQueue, *_texture);
@@ -511,24 +523,25 @@ namespace pvk {
             return _texture;
         };
 
-        for (auto i = 0; i < model.materials.size(); i++) {
-            auto &material = model.materials[i];
+        for (auto i = 0; i < model->materials.size(); i++) {
+            auto &material = model->materials[i];
             auto _material = new gltf::Material();
 
             _material->baseColorTexture = loadTexture(material.pbrMetallicRoughness.baseColorTexture.index);
-            _material->metallicRoughnessTexture = loadTexture(material.pbrMetallicRoughness.metallicRoughnessTexture.index);
+            _material->metallicRoughnessTexture = loadTexture(
+                    material.pbrMetallicRoughness.metallicRoughnessTexture.index);
             _material->occlusionTexture = loadTexture(material.occlusionTexture.index);
 
             materials[i] = _material;
         }
 
-        object->materials = materials;
+        object.materials = std::move(materials);
     }
 
-    void GLTFLoader::loadMaterial(tinygltf::Model &model,
+    void GLTFLoader::loadMaterial(const std::shared_ptr<tinygltf::Model> &model,
                                   gltf::Primitive *primitive,
                                   uint32_t materialIndex) {
-        auto material = model.materials[materialIndex];
+        auto material = model->materials[materialIndex];
 
         auto &baseColorFactor = material.pbrMetallicRoughness.baseColorFactor;
         primitive->material.baseColorFactor = glm::vec4(baseColorFactor[0], baseColorFactor[1], baseColorFactor[2],
@@ -537,12 +550,12 @@ namespace pvk {
         primitive->material.roughnessFactor = static_cast<float>(material.pbrMetallicRoughness.roughnessFactor);
     }
 
-    std::vector<gltf::Animation *> GLTFLoader::loadAnimations(tinygltf::Model &model,
-                                                              std::map<uint32_t, gltf::Node *> &nodeLookup) {
+    std::vector<gltf::Animation *> GLTFLoader::loadAnimations(const std::shared_ptr<tinygltf::Model> &model,
+                                                              const std::map<uint32_t, std::shared_ptr<gltf::Node>> &nodeLookup) {
         auto loadAnimationInputs = [&model](tinygltf::AnimationSampler &sampler, gltf::Sampler &_sampler) {
-            auto &accessor = model.accessors[sampler.input];
-            auto &bufferView = model.bufferViews[accessor.bufferView];
-            auto &buffer = model.buffers[bufferView.buffer];
+            auto &accessor = model->accessors[sampler.input];
+            auto &bufferView = model->bufferViews[accessor.bufferView];
+            auto &buffer = model->buffers[bufferView.buffer];
 
             const void *bufferPointer = &buffer.data[accessor.byteOffset + bufferView.byteOffset];
             const auto *timeValueBuffer = static_cast<const float *>(bufferPointer);
@@ -565,9 +578,9 @@ namespace pvk {
         };
 
         auto loadAnimationOutputs = [&model](tinygltf::AnimationSampler &sampler, gltf::Sampler &_sampler) {
-            auto &accessor = model.accessors[sampler.output];
-            auto &bufferView = model.bufferViews[accessor.bufferView];
-            auto &buffer = model.buffers[bufferView.buffer];
+            auto &accessor = model->accessors[sampler.output];
+            auto &bufferView = model->bufferViews[accessor.bufferView];
+            auto &buffer = model->buffers[bufferView.buffer];
 
             const void *bufferPointer = &buffer.data[accessor.byteOffset + bufferView.byteOffset];
             _sampler.outputs.reserve(accessor.count);
@@ -612,13 +625,13 @@ namespace pvk {
             }
 
             _channel.samplerIndex = channel.sampler;
-            _channel.node = nodeLookup[channel.target_node];
+            _channel.node = nodeLookup.at(channel.target_node);
         };
 
         std::vector<gltf::Animation *> animations;
-        animations.reserve(model.animations.size());
+        animations.reserve(model->animations.size());
 
-        for (auto &animation : model.animations) {
+        for (auto &animation : model->animations) {
             auto _animation = new gltf::Animation();
             _animation->samplers.reserve(animation.samplers.size());
             _animation->channels.reserve(animation.channels.size());
@@ -660,15 +673,15 @@ namespace pvk {
         return animations;
     }
 
-    std::vector<gltf::Skin *> GLTFLoader::loadSkins(tinygltf::Model &model,
-                                                    std::map<uint32_t, gltf::Node *> &nodeLookup) {
+    std::vector<gltf::Skin *> GLTFLoader::loadSkins(const std::shared_ptr<tinygltf::Model> &model,
+                                                    const std::map<uint32_t, std::shared_ptr<gltf::Node>> &nodeLookup) {
         std::vector<gltf::Skin *> allSkins;
-        allSkins.reserve(model.skins.size());
+        allSkins.reserve(model->skins.size());
 
-        for (auto &skin : model.skins) {
+        for (auto &skin : model->skins) {
             auto _skin = new gltf::Skin();
 
-            _skin->skeletonRoot = nodeLookup[skin.skeleton];
+            _skin->skeletonRoot = nodeLookup.at(skin.skeleton);
             _skin->jointsIndices.reserve(skin.joints.size());
 
             for (auto &joint : skin.joints) {
@@ -677,9 +690,9 @@ namespace pvk {
 
             // Check whether there are inverse bind matrices present
             if (skin.inverseBindMatrices > -1) {
-                const auto &accessor = model.accessors[skin.inverseBindMatrices];
-                const auto &bufferView = model.bufferViews[accessor.bufferView];
-                const auto &buffer = model.buffers[bufferView.buffer];
+                const auto &accessor = model->accessors[skin.inverseBindMatrices];
+                const auto &bufferView = model->bufferViews[accessor.bufferView];
+                const auto &buffer = model->buffers[bufferView.buffer];
 
                 _skin->inverseBindMatrices.resize(accessor.count);
                 memcpy(_skin->inverseBindMatrices.data(),
@@ -693,9 +706,8 @@ namespace pvk {
         return allSkins;
     }
 
-    inline std::vector<gltf::Node *> getAllNode(gltf::Node *node) {
-        std::vector<gltf::Node *> allNodes;
-        allNodes.reserve(1);
+    inline std::vector<std::shared_ptr<gltf::Node>> getAllNode(const std::shared_ptr<gltf::Node> &node) {
+        std::vector<std::shared_ptr<gltf::Node>> allNodes;
         allNodes.emplace_back(node);
 
         for (auto &child : node->children) {
@@ -707,8 +719,9 @@ namespace pvk {
         return allNodes;
     }
 
-    std::map<uint32_t, gltf::Node *> GLTFLoader::initializeNodeLookupTable(std::vector<gltf::Node *> &nodes) {
-        std::map<uint32_t, gltf::Node *> nodeLookup{};
+    auto GLTFLoader::initializeNodeLookupTable(
+            std::vector<std::shared_ptr<gltf::Node>> &nodes) -> std::map<uint32_t, std::shared_ptr<gltf::Node>> {
+        std::map<uint32_t, std::shared_ptr<gltf::Node>> nodeLookup{};
 
         for (auto &rootNode : nodes) {
             auto allNodes = getAllNode(rootNode);
@@ -721,32 +734,198 @@ namespace pvk {
         return nodeLookup;
     }
 
-    inline std::vector<gltf::Primitive *> getAllPrimitive(gltf::Node *node) {
-        std::vector<gltf::Primitive *> allPrimitive;
+    inline auto getAllPrimitive(const std::shared_ptr<gltf::Node> &node) -> std::vector<gltf::Primitive *> {
+        std::vector<gltf::Primitive *> allPrimitives;
 
-        if (!node->primitives.empty()) {
-            allPrimitive.reserve(allPrimitive.size() + node->primitives.size());
-            allPrimitive.insert(allPrimitive.end(), node->primitives.begin(), node->primitives.end());
-        };
+        for (auto &primitive : node->primitives) {
+            allPrimitives.emplace_back(primitive.get());
+        }
 
         for (auto &child : node->children) {
             auto allPrimitiveChildren = getAllPrimitive(child);
-            allPrimitive.reserve(allPrimitive.size() + allPrimitiveChildren.size());
-            allPrimitive.insert(allPrimitive.end(), allPrimitiveChildren.begin(), allPrimitiveChildren.end());
+            std::move(allPrimitiveChildren.begin(), allPrimitiveChildren.end(), std::back_inserter(allPrimitives));
         }
 
-        return allPrimitive;
+        return allPrimitives;
     }
 
-    std::map<uint32_t, std::vector<gltf::Primitive *>>
-    GLTFLoader::initializePrimitiveLookupTable(std::vector<gltf::Node *> &nodes) {
+    auto GLTFLoader::initializePrimitiveLookupTable(
+            std::vector<std::shared_ptr<gltf::Node>> &nodes) -> std::map<uint32_t, std::vector<gltf::Primitive *>> {
         std::map<uint32_t, std::vector<gltf::Primitive *>> primitiveLookup;
 
         for (auto &node : nodes) {
-            auto allPrimitive = getAllPrimitive(node);
-            primitiveLookup[node->nodeIndex] = allPrimitive;
+            primitiveLookup[node->nodeIndex] = getAllPrimitive(node);
         }
 
         return primitiveLookup;
+    }
+
+    template<typename T>
+    auto flatten(std::vector<std::future<std::vector<T>>> &&t) -> std::future<std::vector<T>> {
+        return std::async(std::launch::async, [t = std::move(t)]() mutable {
+            std::vector<T> result;
+            for (auto &fut : t) {
+                auto allElement = fut.get();
+                std::move(allElement.begin(), allElement.end(), std::back_inserter(result));
+            }
+            return result;
+        });
+    }
+
+    auto GLTFLoader::loadPrimitives(const std::shared_ptr<tinygltf::Model> &model,
+                                    vk::Queue &graphicsQueue,
+                                    gltf::Object &object)
+    -> std::vector<std::vector<std::unique_ptr<gltf::Primitive>>> {
+        std::vector<tinygltf::Primitive *> primitives;
+        std::vector<std::vector<std::unique_ptr<gltf::Primitive>>> primitiveLookup;
+        std::vector<std::pair<size_t, size_t>> vertexAccessorIndexBatches;
+        std::vector<uint32_t> numberOfVertexPerPrimitive;
+        std::vector<uint32_t> numberOfIndexPerPrimitive;
+        std::vector<uint32_t> vertexOffsets;
+        std::vector<uint32_t> indexOffsets;
+
+        uint32_t currentVertexOffset = 0;
+        uint32_t currentIndexOffset = 0;
+
+        primitiveLookup.reserve(model->meshes.size());
+
+        auto t1 = std::chrono::high_resolution_clock::now();
+
+        for (auto &mesh : model->meshes) {
+            std::vector<std::unique_ptr<gltf::Primitive>> meshPrimitives;
+            meshPrimitives.reserve(mesh.primitives.size());
+
+            for (auto &primitive : mesh.primitives) {
+                const auto currentPrimitiveIndex = primitives.size();
+                const auto vertexCount = model->accessors[primitive.attributes.find(
+                        FIELD_VERTEX_POSITION)->second].count;
+                const auto indexCount = model->accessors[primitive.indices].count;
+
+                vertexOffsets.emplace_back(currentVertexOffset);
+                indexOffsets.emplace_back(currentIndexOffset);
+
+                for (size_t i = 0; i < vertexCount; i++) {
+                    vertexAccessorIndexBatches.emplace_back(std::make_pair(i, currentPrimitiveIndex));
+                }
+
+                primitives.emplace_back(&primitive);
+                numberOfVertexPerPrimitive.emplace_back(vertexCount);
+                numberOfIndexPerPrimitive.emplace_back(indexCount);
+
+                auto _primitive = std::make_unique<gltf::Primitive>();
+                _primitive->startVertex = currentVertexOffset;
+                _primitive->startIndex = currentIndexOffset;
+                _primitive->vertexCount = vertexCount;
+                _primitive->indexCount = indexCount;
+                meshPrimitives.emplace_back(std::move(_primitive));
+
+                currentVertexOffset += vertexCount;
+                currentIndexOffset += indexCount;
+            }
+
+            primitiveLookup.emplace_back(std::move(meshPrimitives));
+        }
+
+        std::vector<std::future<std::vector<Vertex>>> primitiveVertices;
+        std::vector<std::future<std::vector<uint32_t>>> primitiveIndices;
+
+        for (size_t i = 0; i < ceil(static_cast<float>(vertexAccessorIndexBatches.size()) /
+                                    static_cast<float>(VERTEX_BATCH_SIZE)); i++) {
+            primitiveVertices.emplace_back(loadVerticesByPrimitive(model, primitives, vertexAccessorIndexBatches,
+                                                                   i * VERTEX_BATCH_SIZE));
+        }
+
+        for (size_t i = 0; i < primitives.size(); i++) {
+            primitiveIndices.emplace_back(loadIndicesByPrimitive(model, primitives[i], vertexOffsets[i]));
+        }
+
+        object.vertices = flatten(std::move(primitiveVertices)).get();
+        object.indices = flatten(std::move(primitiveIndices)).get();
+
+        return primitiveLookup;
+    }
+
+    auto GLTFLoader::loadVerticesByPrimitive(std::shared_ptr<tinygltf::Model> model,
+                                             const std::vector<tinygltf::Primitive *> &primitives,
+                                             const std::vector<std::pair<size_t, size_t>> &primitiveIndexPairs,
+                                             uint32_t startingIndex) -> std::future<std::vector<Vertex>> {
+        return std::async(std::launch::async, [&, model = std::move(model), startingIndex] {
+            std::vector<Vertex> vertices;
+            vertices.reserve(VERTEX_BATCH_SIZE);
+            const auto indexEnd = std::min(primitiveIndexPairs.size(),
+                                           startingIndex + static_cast<size_t>(VERTEX_BATCH_SIZE));
+
+            for (size_t i = startingIndex; i < indexEnd; i++) {
+                Vertex vertex{};
+                const auto &attribute = primitiveIndexPairs[i];
+                const auto &primitive = primitives[attribute.second];
+
+                GLTFLoader::loadVertexPosition(model, *primitive, vertex, attribute.first);
+                GLTFLoader::loadVertexNormal(model, *primitive, vertex, attribute.first);
+                GLTFLoader::loadVertexUV0(model, *primitive, vertex, attribute.first);
+                GLTFLoader::loadVertexUV1(model, *primitive, vertex, attribute.first);
+                GLTFLoader::loadVertexJoints(model, *primitive, vertex, attribute.first);
+                GLTFLoader::loadVertexWeights(model, *primitive, vertex, attribute.first);
+                GLTFLoader::loadVertexColor(model, *primitive, vertex, attribute.first);
+
+                vertices.emplace_back(vertex);
+            }
+
+            return vertices;
+        });
+    }
+
+
+    auto GLTFLoader::loadIndicesByPrimitive(const std::shared_ptr<tinygltf::Model> &model,
+                                            const tinygltf::Primitive *primitive,
+                                            uint32_t vertexStart) -> std::future<std::vector<uint32_t>> {
+        return std::async(std::launch::async, [model = std::move(model), primitive, vertexStart] {
+            std::vector<uint32_t> indices;
+
+            if (primitive->indices == -1) {
+                // Model has no indices.
+                return indices;
+            }
+
+            const tinygltf::Accessor &indexAccessor = model->accessors[primitive->indices];
+            const tinygltf::BufferView &indexBufferView = model->bufferViews[indexAccessor.bufferView];
+            const tinygltf::Buffer &indexBuffer = model->buffers[indexBufferView.buffer];
+            indices.reserve(indexAccessor.count);
+
+            switch (indexAccessor.componentType) {
+                case TINYGLTF_PARAMETER_TYPE_UNSIGNED_INT: {
+                    auto *buffer = new uint32_t[indexAccessor.count];
+                    memcpy(buffer, &indexBuffer.data[indexAccessor.byteOffset + indexBufferView.byteOffset],
+                           sizeof(uint32_t) * indexAccessor.count);
+                    for (size_t index = 0; index < indexAccessor.count; index++) {
+                        indices.emplace_back(buffer[index] + vertexStart);
+                    }
+                    break;
+                }
+                case TINYGLTF_PARAMETER_TYPE_UNSIGNED_SHORT: {
+                    auto *buffer = new uint16_t[indexAccessor.count];
+                    memcpy(buffer, &indexBuffer.data[indexAccessor.byteOffset + indexBufferView.byteOffset],
+                           sizeof(uint16_t) * indexAccessor.count);
+                    for (size_t index = 0; index < indexAccessor.count; index++) {
+                        indices.emplace_back(buffer[index] + vertexStart);
+                    }
+                    break;
+                }
+                case TINYGLTF_PARAMETER_TYPE_UNSIGNED_BYTE: {
+                    auto *buffer = new uint8_t[indexAccessor.count];
+                    memcpy(buffer, &indexBuffer.data[indexAccessor.byteOffset + indexBufferView.byteOffset],
+                           sizeof(uint8_t) * indexAccessor.count);
+                    for (size_t index = 0; index < indexAccessor.count; index++) {
+                        indices.emplace_back(buffer[index] + vertexStart);
+                    }
+                    break;
+                }
+                default: {
+                    throw std::runtime_error("Unsupported glTF index component type");
+                }
+            }
+
+            return indices;
+        });
     }
 }

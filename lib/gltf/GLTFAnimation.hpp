@@ -30,7 +30,7 @@ namespace pvk::gltf {
         enum PathType {
             TRANSLATION, ROTATION, SCALE
         } pathType;
-        Node *node;
+        std::shared_ptr<Node> node;
         uint32_t samplerIndex;
     };
 

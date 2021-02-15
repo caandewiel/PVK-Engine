@@ -22,38 +22,49 @@ namespace pvk::gltf {
     class Object {
     public:
         Object() = default;;
-        Object(std::vector<Node *> nodes,
-               std::map<uint32_t, Node *> nodeLookup,
+        Object(std::vector<std::shared_ptr<Node>> nodes,
+               std::map<uint32_t, std::shared_ptr<Node>> nodeLookup,
                std::map<uint32_t, std::vector<Primitive *>> primitiveLookup,
                std::vector<Animation *> animations,
-               std::vector<Skin *> skins);
+               std::vector<std::shared_ptr<Skin>> skins);
 
         ~Object();
 
-        std::vector<Node *> nodes;
-        std::map<uint32_t, Node *> nodeLookup;
+        std::vector<std::shared_ptr<Node>> nodes;
+        std::map<uint32_t, std::shared_ptr<Node>> nodeLookup;
         std::map<uint32_t, std::vector<Primitive *>> primitiveLookup;
-        std::map<uint32_t, Skin *> skinLookup;
+        std::map<uint32_t, std::shared_ptr<Skin>> skinLookup;
         std::vector<Animation *> animations;
-        std::vector<Skin *> skins;
+        std::vector<std::shared_ptr<Skin>> skins;
         std::vector<glm::mat4> inverseBindMatrices;
-        std::vector<Vertex> vertices{};
-        std::vector<uint32_t> indices{};
-        std::vector<Material*> materials{};
-        vk::Buffer vertexBuffer{};
-        vk::DeviceMemory vertexBufferMemory{};
-        vk::Buffer indexBuffer{};
-        vk::DeviceMemory indexBufferMemory{};
+        std::vector<Vertex> vertices;
+        std::vector<uint32_t> indices;
+        std::vector<Material*> materials;
+        vk::Buffer vertexBuffer;
+        vk::DeviceMemory vertexBufferMemory;
+        vk::Buffer indexBuffer;
+        vk::DeviceMemory indexBufferMemory;
 
-        void initializeDescriptorSets(const vk::Device &logicalDevice,
-                                      const vk::DescriptorPool &descriptorPool,
-                                      const vk::DescriptorSetLayout &descriptorSetLayout,
-                                      uint32_t numberOfSwapChainImages);
+        void initializeWriteDescriptorSets(const vk::Device &logicalDevice,
+                                           const vk::DescriptorPool &descriptorPool,
+                                           const vk::DescriptorSetLayout &descriptorSetLayout,
+                                           uint32_t numberOfSwapChainImages);
 
         void updateJoints();
-        void updateJointsByNode(Node* node);
 
-        Node *getNodeByIndex(uint32_t index);
+        void updateJointsByNode(Node &node);
+
+        [[nodiscard]] std::shared_ptr<const Node> getNodeByIndex(uint32_t index) const {
+            auto it = nodeLookup.find(index);
+
+            return it == nodeLookup.end() ? nullptr : it->second;
+        }
+
+        [[nodiscard]] std::shared_ptr<Node> getNodeByIndex(uint32_t index) {
+            auto it = nodeLookup.find(index);
+
+            return it == nodeLookup.end() ? nullptr : it->second;
+        }
     };
 }
 

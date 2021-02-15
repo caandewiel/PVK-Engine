@@ -15,8 +15,8 @@ namespace pvk {
         Context::getLogicalDevice().destroyPipeline(this->vulkanPipeline, nullptr);
     }
     
-    void Pipeline::registerObject(Object* object) {
-        this->objects.push_back(object);
+    void Pipeline::registerObject(std::shared_ptr<Object> object) {
+        this->objects.emplace_back(std::move(object));
     }
     
     void Pipeline::registerTexture(Texture *texture, uint32_t binding) {
@@ -30,17 +30,7 @@ namespace pvk {
         uint32_t numberOfNodes = 0;
 
         // First count the amount of resources necessary for the descriptor pool
-        for (auto &descriptorSetLayoutBindings : this->descriptorSetLayoutBindingsLookup) {
-            for (auto &descriptor : descriptorSetLayoutBindings) {
-                if (descriptor.descriptorType == vk::DescriptorType::eUniformBuffer) {
-                    numberOfUniformBuffers++;
-                } else if (descriptor.descriptorType == vk::DescriptorType::eCombinedImageSampler) {
-                    numberOfCombinedImageSamplers++;
-                } else {
-                    throw std::runtime_error("Unsupported descriptor type");
-                }
-            }
-        }
+        getNumberOfResources(numberOfUniformBuffers, numberOfCombinedImageSamplers);
 
         for (auto &object : this->objects) {
             numberOfNodes += (uint32_t) object->gltfObject->nodeLookup.size();
@@ -58,75 +48,96 @@ namespace pvk {
                 },
         };
 
+        // @TODO: Allow multiple descriptor pools per descriptor set visibility
         this->descriptorPool = Context::getLogicalDevice().createDescriptorPool({{}, numberOfNodes * numberOfSwapchainImages, (uint32_t) poolSizes.size(), poolSizes.data()});
 
         for (auto &object : this->objects) {
-            object->gltfObject->initializeDescriptorSets(Context::getLogicalDevice(),
-                                                         this->descriptorPool,
-                                                         this->descriptorSetLayouts[0],
-                                                         numberOfSwapchainImages);
+            // @TODO: Do not hardcode the descriptor set layout
+            object->gltfObject->initializeWriteDescriptorSets(Context::getLogicalDevice(),
+                                                              this->descriptorPool,
+                                                              this->descriptorSetLayouts[0],
+                                                              numberOfSwapchainImages);
         }
 
         std::vector<vk::WriteDescriptorSet> writeDescriptorSets = {};
 
         for (auto &object : this->objects) {
             for (auto &node : object->gltfObject->nodeLookup) {
-                for (uint32_t i = 0; i < numberOfSwapchainImages; i++) {
-                    for (auto &descriptorSetLayoutBindings : this->descriptorSetLayoutBindingsLookup) {
-                        for (auto &descriptor : descriptorSetLayoutBindings) {
-                            switch (descriptor.descriptorType) {
-                                case vk::DescriptorType::eUniformBuffer: {
-                                    this->addWriteDescriptorSetUniformBuffer(writeDescriptorSets, node.second, descriptor, i);
-                                    break;
-                                }
-                                case vk::DescriptorType::eCombinedImageSampler: {
-                                    this->addWriteDescriptorSetCombinedImageSampler(writeDescriptorSets, node.second, descriptor, i);
-                                    break;
-                                }
-                                default:
-                                    throw std::runtime_error("Unsupported descriptor type");
-                            }
-                        }
-                    }
-                }
+                writeDescriptorSets = initializeDescriptorSet(numberOfSwapchainImages, writeDescriptorSets, *node.second);
             }
         }
 
         Context::getLogicalDevice().updateDescriptorSets(writeDescriptorSets, nullptr);
     }
 
+    void Pipeline::getNumberOfResources(uint32_t &numberOfUniformBuffers, uint32_t &numberOfCombinedImageSamplers) {
+        for (auto &descriptorSetLayoutBindings : descriptorSetLayoutBindingsLookup) {
+            for (auto &descriptor : descriptorSetLayoutBindings) {
+                if (descriptor.descriptorType == vk::DescriptorType::eUniformBuffer) {
+                    numberOfUniformBuffers++;
+                } else if (descriptor.descriptorType == vk::DescriptorType::eCombinedImageSampler) {
+                    numberOfCombinedImageSamplers++;
+                } else {
+                    throw std::runtime_error("Unsupported descriptor type");
+                }
+            }
+        }
+    }
+
+    std::vector<vk::WriteDescriptorSet> &Pipeline::initializeDescriptorSet(uint32_t numberOfSwapchainImages,
+                                                                           std::vector<vk::WriteDescriptorSet> &writeDescriptorSets,
+                                                                           gltf::Node &node) {
+        for (uint32_t i = 0; i < numberOfSwapchainImages; i++) {
+            for (auto &descriptorSetLayoutBindings : descriptorSetLayoutBindingsLookup) {
+                for (auto &descriptor : descriptorSetLayoutBindings) {
+                    switch (descriptor.descriptorType) {
+                        case vk::DescriptorType::eUniformBuffer: {
+                            addWriteDescriptorSetUniformBuffer(writeDescriptorSets, node, descriptor, i);
+                            break;
+                        }
+                        case vk::DescriptorType::eCombinedImageSampler: {
+                            addWriteDescriptorSetCombinedImageSampler(writeDescriptorSets, node, descriptor, i);
+                            break;
+                        }
+                        default:
+                            throw std::runtime_error("Unsupported descriptor type");
+                    }
+                }
+            }
+        }
+        return writeDescriptorSets;
+    }
+
     void Pipeline::addWriteDescriptorSetUniformBuffer(std::vector<vk::WriteDescriptorSet> &writeDescriptorSets,
-                                                      pvk::gltf::Node *node,
+                                                      gltf::Node &node,
                                                       vk::DescriptorSetLayoutBinding &descriptor,
                                                       uint32_t i)
     {
         auto numberOfSwapchainImages = (uint32_t) Context::getSwapchainImages().size();
 
-        node->uniformBuffers[descriptor.binding].resize(numberOfSwapchainImages);
-        node->uniformBuffersMemory[descriptor.binding].resize(numberOfSwapchainImages);
-        node->descriptorBuffersInfo[descriptor.binding].resize(numberOfSwapchainImages);
+        node.uniformBuffers[descriptor.binding].resize(numberOfSwapchainImages);
+        node.uniformBuffersMemory[descriptor.binding].resize(numberOfSwapchainImages);
+        node.descriptorBuffersInfo[descriptor.binding].resize(numberOfSwapchainImages);
 
         pvk::buffer::create(this->descriptorSetLayoutBindingSizesLookup[0][descriptor.binding],
                             vk::BufferUsageFlagBits::eUniformBuffer,
                             vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
-                            node->uniformBuffers[descriptor.binding][i],
-                            node->uniformBuffersMemory[descriptor.binding][i]);
+                            node.uniformBuffers[descriptor.binding][i],
+                            node.uniformBuffersMemory[descriptor.binding][i]);
         
-        node->descriptorBuffersInfo[descriptor.binding][i].buffer   = node->uniformBuffers[descriptor.binding][i];
-        node->descriptorBuffersInfo[descriptor.binding][i].offset   = 0;
-        node->descriptorBuffersInfo[descriptor.binding][i].range    = this->descriptorSetLayoutBindingSizesLookup[0][descriptor.binding];
+        node.descriptorBuffersInfo[descriptor.binding][i].buffer   = node.uniformBuffers[descriptor.binding][i];
+        node.descriptorBuffersInfo[descriptor.binding][i].offset   = 0;
+        node.descriptorBuffersInfo[descriptor.binding][i].range    = this->descriptorSetLayoutBindingSizesLookup[0][descriptor.binding];
 
-        writeDescriptorSets.reserve(writeDescriptorSets.size() + 1);
-        writeDescriptorSets.emplace_back(node->descriptorSets[i].get(), descriptor.binding, 0, 1, vk::DescriptorType::eUniformBuffer, nullptr, &node->descriptorBuffersInfo[descriptor.binding][i]);
+        writeDescriptorSets.emplace_back(node.descriptorSets[i].get(), descriptor.binding, 0, 1, vk::DescriptorType::eUniformBuffer, nullptr, &node.descriptorBuffersInfo[descriptor.binding][i]);
     }
     
     void Pipeline::addWriteDescriptorSetCombinedImageSampler(std::vector<vk::WriteDescriptorSet> &writeDescriptorSets,
-                                                             pvk::gltf::Node *node,
-                                                             vk::DescriptorSetLayoutBinding &descriptor,
+                                                             const gltf::Node &node,
+                                                             const vk::DescriptorSetLayoutBinding &descriptor,
                                                              uint32_t i)
     {
-        writeDescriptorSets.reserve(writeDescriptorSets.size() + 1);
-        writeDescriptorSets.emplace_back(node->descriptorSets[i].get(), descriptor.binding, 0, 1, vk::DescriptorType::eCombinedImageSampler, this->textures[descriptor.binding]->getDescriptorImageInfo());
+        writeDescriptorSets.emplace_back(node.descriptorSets[i].get(), descriptor.binding, 0, 1, vk::DescriptorType::eCombinedImageSampler, this->textures[descriptor.binding]->getDescriptorImageInfo());
     }
 
     void Pipeline::setDescriptorSetLayouts(const std::vector<vk::DescriptorSetLayout> &newDescriptorSetLayouts) {

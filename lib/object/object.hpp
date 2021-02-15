@@ -18,22 +18,23 @@
 namespace pvk {
     class Object {
     public:
-        static Object *createFromGLTF(vk::Queue &graphicsQueue, const std::string &filename);
+        static std::unique_ptr<Object> createFromGLTF(vk::Queue &graphicsQueue, const std::string &filename);
 
         ~Object();
 
-        [[nodiscard]] std::vector<gltf::Node *> getNodes() const;
+        [[nodiscard]] const std::vector<std::shared_ptr<gltf::Node>> & getNodes() const;
 
-        [[nodiscard]] std::vector<gltf::Animation *> getAnimations() const;
+        [[nodiscard]] const std::vector<gltf::Animation *> & getAnimations() const;
 
         void updateUniformBuffer(uint32_t bindingIndex, size_t size, void *data) const;
 
         void updateUniformBufferPerNode(uint32_t bindingIndex,
-                                        const std::function<void(pvk::gltf::Object *object,
-                                                                 pvk::gltf::Node *node,
+                                        const std::function<void(pvk::gltf::Object &object,
+                                                                 pvk::gltf::Node &node,
                                                                  vk::DeviceMemory &memory)> &function) const;
+
         // @TODO: Make this private
-        gltf::Object *gltfObject;
+        std::unique_ptr<gltf::Object> gltfObject;
 
     private:
         Object();

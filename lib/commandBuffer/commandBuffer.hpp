@@ -25,26 +25,26 @@ namespace pvk {
             this->currentPipeline = pipeline;
         }
 
-        void drawNode(gltf::Object *object, gltf::Node *node) {
+        void drawNode(const gltf::Object &object, const gltf::Node &node) {
             if (this->currentPipeline == 0) {
                 throw std::runtime_error("No active pipeline defined");
             }
             
-            this->commandBuffer->bindVertexBuffers(0, object->vertexBuffer, {0});
-            if (object->indices.empty()) {
+            this->commandBuffer->bindVertexBuffers(0, object.vertexBuffer, {0});
+            if (object.indices.empty()) {
                 this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
                                                         this->currentPipeline->pipelineLayout, 0, 1,
-                                                        &node->descriptorSets[this->swapchainIndex].get(), 0, nullptr);
-                for (auto &primitive : object->primitiveLookup[node->nodeIndex]) {
+                                                        &node.descriptorSets[this->swapchainIndex].get(), 0, nullptr);
+                for (auto &primitive : object.primitiveLookup.at(node.nodeIndex)) {
                     this->commandBuffer->draw(primitive->vertexCount, 1, primitive->startVertex, 0);
                 }
             } else {
-                this->commandBuffer->bindIndexBuffer(object->indexBuffer, 0, vk::IndexType::eUint32);
+                this->commandBuffer->bindIndexBuffer(object.indexBuffer, 0, vk::IndexType::eUint32);
                 this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
                                                         this->currentPipeline->pipelineLayout, 0, 1,
-                                                        &node->descriptorSets[this->swapchainIndex].get(), 0, nullptr);
+                                                        &node.descriptorSets[this->swapchainIndex].get(), 0, nullptr);
 
-                for (auto &primitive : node->primitives) {
+                for (auto &primitive : node.primitives) {
                     this->commandBuffer->drawIndexed(primitive->indexCount, 1, primitive->startIndex, 0, 0);
                 }
             }

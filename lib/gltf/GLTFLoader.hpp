@@ -19,6 +19,8 @@
 #define FIELD_VERTEX_JOINTS_0 "JOINTS_0"
 #define FIELD_VERTEX_WEIGHTS_0 "WEIGHTS_0"
 
+#define VERTEX_BATCH_SIZE 1024
+
 #include <cstdio>
 #include <string>
 #include <cstring>
@@ -26,6 +28,9 @@
 #include <sstream>
 #include <future>
 #include <execution>
+#include <thread>
+#include <span>
+#include <cmath>
 
 #include "tiny_gltf.h"
 
@@ -41,79 +46,101 @@
 namespace pvk {
     class GLTFLoader {
     public:
-        static gltf::Object *loadObject(vk::Queue &graphicsQueue,
-                                        const std::string &filePath);
+        static std::unique_ptr<gltf::Object> loadObject(vk::Queue &graphicsQueue,
+                                                        const std::string &filePath);
 
-        static std::vector<gltf::Node *> loadNodes(tinygltf::Model &model,
-                                                   vk::Queue &graphicsQueue,
-                                                   gltf::Object *&object);
+        static auto loadPrimitives(const std::shared_ptr<tinygltf::Model> &model,
+                                   vk::Queue &graphicsQueue,
+                                   gltf::Object &object)
+        -> std::vector<std::vector<std::unique_ptr<gltf::Primitive>>>;
 
-        static gltf::Node *loadNode(tinygltf::Model &model,
-                                    int nodeIndex,
-                                    vk::Queue &graphicsQueue,
-                                    gltf::Object *&object,
-                                    gltf::Node *parent = nullptr);
 
-        static std::map<uint32_t, gltf::Node *> initializeNodeLookupTable(std::vector<gltf::Node *> &nodes);
+        static std::future<std::vector<Vertex>> loadVerticesByPrimitive(std::shared_ptr<tinygltf::Model> model,
+                                                                        const std::vector<tinygltf::Primitive *> &primitives,
+                                                                        const std::vector<std::pair<size_t, size_t>> &primitiveIndexPairs,
+                                                                        uint32_t startingIndex);
+
+        static std::future<std::vector<uint32_t>> loadIndicesByPrimitive(const std::shared_ptr<tinygltf::Model> &model,
+                                                                         const tinygltf::Primitive *primitive,
+                                                                         uint32_t vertexStart);
+
+        static auto loadNodes(const std::shared_ptr<tinygltf::Model> &model,
+                              std::vector<std::vector<std::unique_ptr<gltf::Primitive>>> &primitiveLookup,
+                              vk::Queue &graphicsQueue,
+                              gltf::Object &object)
+        -> std::vector<std::shared_ptr<gltf::Node>>;
+
+        static auto loadNode(const std::shared_ptr<tinygltf::Model> &model,
+                             std::vector<std::vector<std::unique_ptr<gltf::Primitive>>> &primitiveLookup,
+                             uint32_t nodeIndex,
+                             vk::Queue &graphicsQueue,
+                             gltf::Object &object,
+                             std::shared_ptr<gltf::Node> parent = nullptr)
+        -> std::shared_ptr<gltf::Node>;
+
+        static std::map<uint32_t, std::shared_ptr<gltf::Node>> initializeNodeLookupTable(
+                std::vector<std::shared_ptr<gltf::Node>> &nodes);
 
         static std::map<uint32_t, std::vector<gltf::Primitive *>>
-        initializePrimitiveLookupTable(std::vector<gltf::Node *> &nodes);
+        initializePrimitiveLookupTable(std::vector<std::shared_ptr<gltf::Node>> &nodes);
 
-        static std::map<uint32_t, std::vector<gltf::Skin *>>
-        initializeSkinLookupTable(std::vector<gltf::Node *> &nodes);
+        static std::vector<gltf::Skin *> loadSkins(const std::shared_ptr<tinygltf::Model> &model,
+                                                   const std::map<uint32_t, std::shared_ptr<gltf::Node>> &nodeLookup);
 
-        static std::vector<gltf::Skin *> loadSkins(tinygltf::Model &model,
-                                                   std::map<uint32_t, gltf::Node *> &nodeLookup);
+        static void
+        loadMaterials(const std::shared_ptr<tinygltf::Model> &model, vk::Queue &graphicsQueue, gltf::Object &object);
 
-        static void loadMaterials(tinygltf::Model &model, vk::Queue &graphicsQueue, gltf::Object *object);
-
-        static void loadMaterial(tinygltf::Model &model,
+        static void loadMaterial(const std::shared_ptr<tinygltf::Model> &model,
                                  gltf::Primitive *primitive,
                                  uint32_t materialIndex);
 
     private:
         static void loadIndices(std::vector<uint32_t> &indices,
-                                tinygltf::Model &model,
+                                const std::shared_ptr<tinygltf::Model> &model,
                                 tinygltf::Primitive &primitive,
                                 uint32_t &vertexStart);
 
-        static std::vector<gltf::Animation *> loadAnimations(tinygltf::Model &model,
-                                                             std::map<uint32_t, gltf::Node *> &nodeLookup);
+        static std::vector<gltf::Animation *> loadAnimations(const std::shared_ptr<tinygltf::Model> &model,
+                                                             const std::map<uint32_t, std::shared_ptr<gltf::Node>> &nodeLookup);
 
-        static void loadVertexPosition(const tinygltf::Model &model,
+        static void loadVertexPosition(const std::shared_ptr<tinygltf::Model> &model,
                                        const tinygltf::Primitive &primitive,
                                        Vertex &vertex,
                                        uint32_t index);
 
-        static void loadVertexNormal(const tinygltf::Model &model,
+        static void loadVertexNormal(const std::shared_ptr<tinygltf::Model> &model,
                                      const tinygltf::Primitive &primitive,
                                      Vertex &vertex,
                                      uint32_t index);
 
-        static void loadVertexColor(const tinygltf::Model &model,
+        static void loadVertexColor(const std::shared_ptr<tinygltf::Model> &model,
                                     const tinygltf::Primitive &primitive,
                                     Vertex &vertex,
                                     uint32_t index);
 
-        static void loadVertexUV0(const tinygltf::Model &model,
+        static void loadVertexUV0(const std::shared_ptr<tinygltf::Model> &model,
                                   const tinygltf::Primitive &primitive,
                                   Vertex &vertex,
                                   uint32_t index);
 
-        static void loadVertexUV1(const tinygltf::Model &model,
+        static void loadVertexUV1(const std::shared_ptr<tinygltf::Model> &model,
                                   const tinygltf::Primitive &primitive,
                                   Vertex &vertex,
                                   uint32_t index);
 
-        static void loadVertexJoints(const tinygltf::Model &model,
+        static void loadVertexJoints(const std::shared_ptr<tinygltf::Model> &model,
                                      const tinygltf::Primitive &primitive,
                                      Vertex &vertex,
                                      uint32_t index);
 
-        static void loadVertexWeights(const tinygltf::Model &model,
+        static void loadVertexWeights(const std::shared_ptr<tinygltf::Model> &model,
                                       const tinygltf::Primitive &primitive,
                                       Vertex &vertex,
                                       uint32_t index);
+
+        static auto createVertexBuffer(vk::Queue &graphicsQueue, const std::unique_ptr<gltf::Object> &object) -> std::future<void>;
+
+        static auto createIndexBuffer(vk::Queue &graphicsQueue, const std::unique_ptr<gltf::Object> &object) -> std::future<void>;
     };
 }
 

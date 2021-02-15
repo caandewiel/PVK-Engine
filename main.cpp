@@ -7,8 +7,8 @@ class App : public Application {
     pvk::Pipeline *_pipeline;
     pvk::Pipeline *_skyboxPipeline;
 
-    pvk::Object *_skyboxObject;
-    pvk::Object *_fox;
+    std::shared_ptr<pvk::Object> _fox;
+    std::shared_ptr<pvk::Object> _skyboxObject;
 
     pvk::Texture _skyboxTexture;
 
@@ -52,18 +52,18 @@ class App : public Application {
         _fox = pvk::Object::createFromGLTF(graphicsQueue, "/Users/christian/Downloads/walk_robot/scene.gltf");
         auto t2 = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>( t2 - t1 ).count();
-        std::cout << "Loading model took " << duration << "ms";
+        std::cout << "Loading model took " << duration << "ms" << std::endl;
 
-        _pipeline->registerObject(_fox);
         _pipeline->registerTexture(_fox->gltfObject->materials[0]->baseColorTexture, 3);
         _pipeline->registerTexture(_fox->gltfObject->materials[0]->occlusionTexture, 4);
         _pipeline->registerTexture(_fox->gltfObject->materials[0]->metallicRoughnessTexture, 5);
+        _pipeline->registerObject(_fox);
 
         // Load skybox
         _skyboxObject = pvk::Object::createFromGLTF(graphicsQueue, "/Users/christian/Downloads/data/models/cube.gltf");
         _skyboxTexture = pvk::ktx::load(graphicsQueue, "/Users/christian/Downloads/data/textures/cubemap_space.ktx");
-        _skyboxPipeline->registerObject(_skyboxObject);
         _skyboxPipeline->registerTexture(&_skyboxTexture, 2);
+        _skyboxPipeline->registerObject(_skyboxObject);
 
         // Finalize pipeline and prepare for rendering
         _pipeline->prepare();
@@ -76,7 +76,7 @@ class App : public Application {
         uniformBufferObject.projection[1][1] *= -1;
         uniformBufferObject.lightPosition = glm::vec3(0.0f, 0.0f, 5.0f);
 
-        auto setMaterial = [](pvk::gltf::Object *object, pvk::gltf::Node *node, vk::DeviceMemory &memory) {
+        auto setMaterial = [](pvk::gltf::Object &object, pvk::gltf::Node &node, vk::DeviceMemory &memory) {
             struct {
                 glm::vec4 baseColorFactor = glm::vec4(1.0f, 0.0f, 0.0f, 0.0f);
                 float metallicFactor = 0.0;
@@ -99,29 +99,29 @@ class App : public Application {
         _fox->updateUniformBuffer(0, sizeof(uniformBufferObject), &uniformBufferObject);
         _skyboxObject->updateUniformBuffer(0, sizeof(uniformBufferObject), &uniformBufferObject);
 
-        const auto setUniformBufferObject = [](pvk::gltf::Object *object,
-                                               pvk::gltf::Node *node,
+        const auto setUniformBufferObject = [](pvk::gltf::Object &object,
+                                               pvk::gltf::Node &node,
                                                vk::DeviceMemory &memory) {
-            node->bufferObject.model = glm::scale(glm::mat4(1.0f), glm::vec3(0.1f));
-            node->bufferObject.localMatrix = node->getGlobalMatrix();
+            node.bufferObject.model = glm::scale(glm::mat4(1.0f), glm::vec3(0.1f));
+            node.bufferObject.localMatrix = node.getGlobalMatrix();
 
-            auto &inverseBindMatrices = object->inverseBindMatrices;
+            auto &inverseBindMatrices = object.inverseBindMatrices;
 
             if (inverseBindMatrices.empty()) {
                 // No need to change the buffer object.
             } else {
                 for (size_t i = 0; i < inverseBindMatrices.size(); i++) {
-                    node->bufferObject.inverseBindMatrices[i] = inverseBindMatrices[i];
+                    node.bufferObject.inverseBindMatrices[i] = inverseBindMatrices[i];
                 }
             }
 
-            if (node->skinIndex > -1) {
-                node->bufferObject.jointCount = static_cast<float>(inverseBindMatrices.size());
+            if (node.skinIndex > -1) {
+                node.bufferObject.jointCount = static_cast<float>(inverseBindMatrices.size());
             } else {
-                node->bufferObject.jointCount = 0.0f;
+                node.bufferObject.jointCount = 0.0f;
             }
 
-            pvk::buffer::update(memory, sizeof(node->bufferObject), &node->bufferObject);
+            pvk::buffer::update(memory, sizeof(node.bufferObject), &node.bufferObject);
         };
 
         _fox->getAnimations()[0]->update(this->deltaTime);
@@ -134,21 +134,19 @@ class App : public Application {
         commandBuffer->bindPipeline(_skyboxPipeline);
 
         for (auto &node : _skyboxObject->getNodes()) {
-            commandBuffer->drawNode(_skyboxObject->gltfObject, node);
+            commandBuffer->drawNode(*_skyboxObject->gltfObject, *node);
         }
 
         commandBuffer->bindPipeline(_pipeline);
 
         for (auto &node : _fox->gltfObject->nodeLookup) {
-            commandBuffer->drawNode(_fox->gltfObject, node.second);
+            commandBuffer->drawNode(*_fox->gltfObject, *node.second);
         }
     }
 
     void tearDown() override {
-        delete _fox;
-        delete _skyboxObject;
-        delete _pipeline;
-        delete _skyboxPipeline;
+//        delete _pipeline;
+//        delete _skyboxPipeline;
     }
 };
 
