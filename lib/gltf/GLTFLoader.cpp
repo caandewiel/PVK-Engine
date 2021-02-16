@@ -190,7 +190,6 @@ namespace pvk {
                 const auto &bufferView = model->bufferViews[accessor.bufferView];
                 const auto &buffer = model->buffers[bufferView.buffer];
 
-                _skin->skeletonRoot = resultNode;
                 _skin->inverseBindMatrices.resize(accessor.count);
                 memcpy(_skin->inverseBindMatrices.data(),
                        &buffer.data[accessor.byteOffset + bufferView.byteOffset],

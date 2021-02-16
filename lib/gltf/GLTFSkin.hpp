@@ -10,7 +10,6 @@
 
 namespace pvk::gltf {
     struct Skin {
-        std::shared_ptr<Node> skeletonRoot;
         uint32_t skinIndex = 0;
         std::vector<glm::mat4> inverseBindMatrices;
         std::vector<uint32_t> jointsIndices;

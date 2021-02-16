@@ -36,7 +36,7 @@ namespace pvk {
             QueueFamilyIndices findQueueFamilies(const vk::PhysicalDevice &device, const vk::SurfaceKHR &surface);
             vk::PhysicalDevice initialize(const vk::Instance &instance,
                                           const vk::SurfaceKHR &surface,
-                                          std::vector<const char*> deviceExtensions);
+                                          const std::vector<const char*>& deviceExtensions);
         }
     }
 }

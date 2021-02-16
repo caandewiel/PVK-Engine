@@ -55,9 +55,9 @@ namespace pvk {
 
         vk::UniquePipeline vulkanPipeline;
     public:
-        const vk::UniquePipeline &getVulkanPipeline() const;
+        [[nodiscard]] auto getVulkanPipeline() const -> const vk::UniquePipeline &;
 
-        const vk::UniquePipelineLayout &getPipelineLayout() const;
+        [[nodiscard]] auto getPipelineLayout() const -> const vk::UniquePipelineLayout &;
 
     private:
         vk::UniquePipelineLayout pipelineLayout;
@@ -65,13 +65,12 @@ namespace pvk {
         std::vector<std::shared_ptr<Object>> objects{};
         std::map<uint32_t, Texture *> textures;
 
-        vk::DescriptorPool descriptorPool;
-        std::unordered_map<uint8_t, vk::DescriptorPool> descriptorPools;
-        std::vector<vk::DescriptorSetLayout> descriptorSetLayouts;
+        vk::UniqueDescriptorPool descriptorPool;
+        std::vector<vk::UniqueDescriptorSetLayout> descriptorSetLayouts;
         std::vector<std::vector<vk::DescriptorSetLayoutBinding>> descriptorSetLayoutBindingsLookup;
         std::unordered_map<uint8_t, std::unordered_map<uint8_t, size_t>> descriptorSetLayoutBindingSizesLookup;
     public:
-        void setDescriptorSetLayouts(const std::vector<vk::DescriptorSetLayout> &newDescriptorSetLayouts);
+        void setDescriptorSetLayouts(std::vector<vk::UniqueDescriptorSetLayout> &newDescriptorSetLayouts);
 
         void setDescriptorSetLayoutBindingsLookup(
                 const std::vector<std::vector<vk::DescriptorSetLayoutBinding>> &newDescriptorSetLayoutBindingsLookup);

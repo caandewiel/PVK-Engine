@@ -25,8 +25,8 @@ namespace pvk::gltf {
 
         ~Node();
 
-        [[nodiscard]] glm::mat4 getGlobalMatrix() const;
-        [[nodiscard]] glm::mat4 getLocalMatrix() const;
+        [[nodiscard]] auto getGlobalMatrix() const -> const glm::mat4;
+        [[nodiscard]] auto getLocalMatrix() const -> const glm::mat4;
 
         std::vector<std::shared_ptr<Node>> children;
         std::vector<std::unique_ptr<Primitive>> primitives;

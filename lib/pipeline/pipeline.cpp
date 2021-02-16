@@ -8,9 +8,7 @@
 #include "pipeline.hpp"
 
 namespace pvk {
-    Pipeline::~Pipeline() {
-        Context::getLogicalDevice().destroyDescriptorPool(this->descriptorPool, nullptr);
-    }
+    Pipeline::~Pipeline() {}
     
     void Pipeline::registerObject(std::shared_ptr<Object> object) {
         this->objects.emplace_back(std::move(object));
@@ -46,13 +44,13 @@ namespace pvk {
         };
 
         // @TODO: Allow multiple descriptor pools per descriptor set visibility
-        this->descriptorPool = Context::getLogicalDevice().createDescriptorPool({{}, numberOfNodes * numberOfSwapchainImages, (uint32_t) poolSizes.size(), poolSizes.data()});
+        this->descriptorPool = Context::getLogicalDevice().createDescriptorPoolUnique({{}, numberOfNodes * numberOfSwapchainImages, (uint32_t) poolSizes.size(), poolSizes.data()});
 
         for (auto &object : this->objects) {
             // @TODO: Do not hardcode the descriptor set layout
             object->gltfObject->initializeWriteDescriptorSets(Context::getLogicalDevice(),
-                                                              this->descriptorPool,
-                                                              this->descriptorSetLayouts[0],
+                                                              this->descriptorPool.get(),
+                                                              this->descriptorSetLayouts[0].get(),
                                                               numberOfSwapchainImages);
         }
 
@@ -137,8 +135,8 @@ namespace pvk {
         writeDescriptorSets.emplace_back(node.descriptorSets[i].get(), descriptor.binding, 0, 1, vk::DescriptorType::eCombinedImageSampler, this->textures[descriptor.binding]->getDescriptorImageInfo());
     }
 
-    void Pipeline::setDescriptorSetLayouts(const std::vector<vk::DescriptorSetLayout> &newDescriptorSetLayouts) {
-        Pipeline::descriptorSetLayouts = newDescriptorSetLayouts;
+    void Pipeline::setDescriptorSetLayouts(std::vector<vk::UniqueDescriptorSetLayout> &newDescriptorSetLayouts) {
+        this->descriptorSetLayouts = std::move(newDescriptorSetLayouts);
     }
 
     void Pipeline::setDescriptorSetLayoutBindingsLookup(

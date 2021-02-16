@@ -8,11 +8,15 @@
 #include "texture.hpp"
 
 namespace pvk {
-    Texture::Texture() {}
-    
-    vk::DescriptorImageInfo* Texture::getDescriptorImageInfo() {
-        this->descriptorImageInfo = {this->sampler.get(), this->imageView.get(), vk::ImageLayout::eShaderReadOnlyOptimal};
-        
+    Texture::Texture() = default;
+
+    auto Texture::getDescriptorImageInfo() -> vk::DescriptorImageInfo * {
+        this->descriptorImageInfo = {
+                this->sampler.get(),
+                this->imageView.get(),
+                vk::ImageLayout::eShaderReadOnlyOptimal
+        };
+
         return &this->descriptorImageInfo;
     }
 }

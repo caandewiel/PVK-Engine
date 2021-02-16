@@ -90,7 +90,7 @@ namespace pvk {
         }
 
         // Create native Vulkan descriptor set layouts for all defined descriptor sets
-        std::vector<vk::DescriptorSetLayout> descriptorSetLayouts;
+        std::vector<vk::UniqueDescriptorSetLayout> descriptorSetLayouts;
         descriptorSetLayouts.reserve(_descriptorSets.size());
 
         std::vector<std::vector<vk::DescriptorSetLayoutBinding>> descriptorSetLayoutBindingsLookup;
@@ -114,15 +114,22 @@ namespace pvk {
             vk::DescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo{};
             descriptorSetLayoutCreateInfo.setBindings(descriptorSetLayoutBindings);
 
-            vk::DescriptorSetLayout descriptorSetLayout = Context::getLogicalDevice().createDescriptorSetLayout(
-                    descriptorSetLayoutCreateInfo);
+            auto descriptorSetLayout = Context::getLogicalDevice().createDescriptorSetLayoutUnique(descriptorSetLayoutCreateInfo);
 
-            descriptorSetLayouts.emplace_back(descriptorSetLayout);
+            descriptorSetLayouts.emplace_back(std::move(descriptorSetLayout));
         }
 
         // Create the pipeline layout
         vk::PipelineLayoutCreateInfo pipelineCreateInfo{};
-        pipelineCreateInfo.setSetLayouts(descriptorSetLayouts);
+        pipelineCreateInfo.setSetLayouts([&]() {
+            std::vector<vk::DescriptorSetLayout> _descriptorSetLayouts;
+
+            for (auto &descriptorSetLayout : descriptorSetLayouts) {
+                _descriptorSetLayouts.emplace_back(descriptorSetLayout.get());
+            }
+
+            return _descriptorSetLayouts;
+        }());
         auto pipelineLayout = Context::getLogicalDevice()
                 .createPipelineLayoutUnique(pipelineCreateInfo);
 

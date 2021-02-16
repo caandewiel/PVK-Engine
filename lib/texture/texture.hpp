@@ -16,7 +16,7 @@ namespace pvk {
     class Texture {
     public:
         Texture();
-        vk::DescriptorImageInfo* getDescriptorImageInfo();
+        auto getDescriptorImageInfo() -> vk::DescriptorImageInfo*;
         
         vk::UniqueImage image {};
         vk::UniqueDeviceMemory imageMemory {};

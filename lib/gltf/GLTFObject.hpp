@@ -54,13 +54,7 @@ namespace pvk::gltf {
 
         void updateJointsByNode(Node &node);
 
-        [[nodiscard]] std::shared_ptr<const Node> getNodeByIndex(uint32_t index) const {
-            auto it = nodeLookup.find(index);
-
-            return it == nodeLookup.end() ? nullptr : it->second;
-        }
-
-        [[nodiscard]] std::shared_ptr<Node> getNodeByIndex(uint32_t index) {
+        [[nodiscard]] auto getNodeByIndex(uint32_t index) -> std::shared_ptr<Node> {
             auto it = nodeLookup.find(index);
 
             return it == nodeLookup.end() ? nullptr : it->second;

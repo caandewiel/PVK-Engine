@@ -24,7 +24,7 @@ namespace pvk::gltf {
                 glm::vec4 baseColorFactor;
                 float metallicFactor;
                 float roughnessFactor;
-            } material{{1.0f, 1.0f, 1.0f, 1.0f}, 0.0f, 1.0f};
+            } material{{1.0F, 1.0F, 1.0F, 1.0F}, 0.0F, 1.0F};
             
             uint32_t startIndex{};
             uint32_t startVertex{};
@@ -32,9 +32,6 @@ namespace pvk::gltf {
             uint32_t vertexCount{};
 
             std::vector<vk::UniqueDescriptorSet> descriptorSets{};
-            std::map<uint32_t, std::vector<vk::DescriptorBufferInfo>> descriptorBuffersInfo{};
-            std::map<uint32_t, std::vector<vk::Buffer>> uniformBuffers{};
-            std::map<uint32_t, std::vector<vk::DeviceMemory>> uniformBuffersMemory{};
         };
     }
 

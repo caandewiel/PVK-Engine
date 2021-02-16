@@ -12,7 +12,7 @@ namespace pvk::gltf {
 
     Node::~Node() = default;
 
-    glm::mat4 Node::getGlobalMatrix() const {
+    auto Node::getGlobalMatrix() const -> const glm::mat4 {
         auto localMatrix = this->getLocalMatrix();
         auto currentParent = this->parent;
 
@@ -24,14 +24,14 @@ namespace pvk::gltf {
         return localMatrix;
     }
 
-    glm::mat4 Node::getLocalMatrix() const {
-        if (this->matrix == glm::mat4(1.0f)) {
-            return glm::translate(glm::mat4(1.0f), this->translation)
+    auto Node::getLocalMatrix() const -> const glm::mat4 {
+        if (this->matrix == glm::mat4(1.0F)) {
+            return glm::translate(glm::mat4(1.0F), this->translation)
                    * glm::mat4(this->rotation)
-                   * glm::scale(glm::mat4(1.0f), this->scale)
+                   * glm::scale(glm::mat4(1.0F), this->scale)
                    * this->matrix;
-        } else {
-            return this->matrix;
         }
+
+        return this->matrix;
     }
 }
