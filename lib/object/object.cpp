@@ -72,7 +72,11 @@ namespace pvk {
         return this->gltfObject->nodes;
     }
 
-    const std::vector<gltf::Animation *> & Object::getAnimations() const {
-        return this->gltfObject->animations;
+    auto Object::getAnimation(uint32_t animationIndex) const -> const gltf::Animation & {
+        return *this->gltfObject->animations[animationIndex];
+    }
+
+    auto Object::getAnimation(uint32_t animationIndex) -> gltf::Animation & {
+        return *this->gltfObject->animations[animationIndex];
     }
 }

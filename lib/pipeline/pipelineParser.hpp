@@ -22,24 +22,24 @@ namespace pvk {
         OBJECT, NODE, PRIMITIVE
     };
 
-    static std::map<std::string, vk::DescriptorType> descriptorTypeMapping = {
+    static const std::map<std::string, vk::DescriptorType> descriptorTypeMapping = {
             {"UNIFORM_BUFFER",         vk::DescriptorType::eUniformBuffer},
             {"COMBINED_IMAGE_SAMPLER", vk::DescriptorType::eCombinedImageSampler},
     };
 
-    static std::map<std::string, vk::ShaderStageFlags> shaderStageMapping = {
+    static const std::map<std::string, vk::ShaderStageFlags> shaderStageMapping = {
             {"VERTEX_AND_FRAGMENT", vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment},
             {"FRAGMENT",            vk::ShaderStageFlagBits::eFragment},
             {"VERTEX",              vk::ShaderStageFlagBits::eVertex},
     };
 
-    static std::map<std::string, pvk::DescriptorSetVisibility> visibilityMapping = {
+    static const std::map<std::string, pvk::DescriptorSetVisibility> visibilityMapping = {
             {"OBJECT",    pvk::DescriptorSetVisibility::OBJECT},
             {"NODE",      pvk::DescriptorSetVisibility::NODE},
             {"PRIMITIVE", pvk::DescriptorSetVisibility::PRIMITIVE},
     };
 
-    static std::map<std::string, vk::CullModeFlags> cullModeMapping = {
+    static const std::map<std::string, vk::CullModeFlags> cullModeMapping = {
             {"BACK",  vk::CullModeFlagBits::eBack},
             {"FRONT", vk::CullModeFlagBits::eFront},
     };
@@ -56,9 +56,9 @@ namespace pvk {
         DescriptorSetVisibility visibility{};
     };
 
-    pvk::Pipeline* createPipelineFromDefinition(const std::string &filePath,
-                                                vk::RenderPass &renderPass,
-                                                vk::Extent2D &swapChainExtent) {
+    std::unique_ptr<pvk::Pipeline> createPipelineFromDefinition(const std::string &filePath,
+                                                                vk::RenderPass &renderPass,
+                                                                vk::Extent2D &swapChainExtent) {
         // Load the pipeline definition and parser the JSON content
         std::ifstream input(filePath);
         json jsonContent;
@@ -72,15 +72,15 @@ namespace pvk {
 
         for (auto &descriptorSet : descriptorSets) {
             auto _descriptorSet = new DescriptorSet();
-            _descriptorSet->visibility = visibilityMapping[descriptorSet["visibility"].get<std::string>()];
+            _descriptorSet->visibility = visibilityMapping.at(descriptorSet["visibility"].get<std::string>());
             _descriptorSet->bindings.reserve(descriptorSet["bindings"].size());
 
             for (auto &binding : descriptorSet["bindings"]) {
                 auto _binding = new DescriptorBinding{
                         binding["name"].get<std::string>(),
                         binding["bindingIndex"].get<std::uint8_t>(),
-                        descriptorTypeMapping[binding["type"].get<std::string>()],
-                        shaderStageMapping[binding["stage"].get<std::string>()],
+                        descriptorTypeMapping.at(binding["type"].get<std::string>()),
+                        shaderStageMapping.at(binding["stage"].get<std::string>()),
                 };
 
                 _descriptorSet->bindings.emplace_back(_binding);
@@ -114,7 +114,8 @@ namespace pvk {
             vk::DescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo{};
             descriptorSetLayoutCreateInfo.setBindings(descriptorSetLayoutBindings);
 
-            vk::DescriptorSetLayout descriptorSetLayout = Context::getLogicalDevice().createDescriptorSetLayout(descriptorSetLayoutCreateInfo);
+            vk::DescriptorSetLayout descriptorSetLayout = Context::getLogicalDevice().createDescriptorSetLayout(
+                    descriptorSetLayoutCreateInfo);
 
             descriptorSetLayouts.emplace_back(descriptorSetLayout);
         }
@@ -122,9 +123,10 @@ namespace pvk {
         // Create the pipeline layout
         vk::PipelineLayoutCreateInfo pipelineCreateInfo{};
         pipelineCreateInfo.setSetLayouts(descriptorSetLayouts);
-        vk::PipelineLayout pipelineLayout = Context::getLogicalDevice().createPipelineLayout(pipelineCreateInfo);
+        auto pipelineLayout = Context::getLogicalDevice()
+                .createPipelineLayoutUnique(pipelineCreateInfo);
 
-        pvk::pipeline::Builder pipelineBuilder{renderPass, pipelineLayout};
+        pvk::pipeline::Builder pipelineBuilder{renderPass, std::move(pipelineLayout)};
 
         auto bindingDescriptions = pvk::Vertex::getBindingDescription();
         auto attributeDescriptions = pvk::Vertex::getAttributeDescriptions();
@@ -135,7 +137,7 @@ namespace pvk {
         pipelineBuilder.viewports = viewports;
         pipelineBuilder.scissors = scissors;
 
-        pipelineBuilder.rasterizationState.cullMode = cullModeMapping[jsonContent["cullingMode"].get<std::string>()];
+        pipelineBuilder.rasterizationState.cullMode = cullModeMapping.at(jsonContent["cullingMode"].get<std::string>());
         pipelineBuilder.rasterizationState.frontFace = vk::FrontFace::eCounterClockwise;
 
         if (jsonContent["enableDepth"].get<bool>()) {
@@ -181,9 +183,11 @@ namespace pvk {
         pipelineBuilder.shaderStages.push_back(fragmentShaderStage);
 
         // Now create the actual pipeline
-        auto pipeline = new pvk::Pipeline();
-        pipeline->vulkanPipeline = pipelineBuilder.create(Context::getPipelineCache());
-        pipeline->pipelineLayout = pipelineLayout;
+        auto pipeline = std::make_unique<Pipeline>(
+                std::move(pipelineBuilder.create(Context::getPipelineCache())),
+                std::move(pipelineLayout)
+        );
+
         pipeline->setDescriptorSetLayouts(descriptorSetLayouts);
         pipeline->setDescriptorSetLayoutBindingsLookup(descriptorSetLayoutBindingsLookup);
 

@@ -13,7 +13,7 @@ namespace pvk::gltf {
     Object::Object(std::vector<std::shared_ptr<Node>> nodes,
                    std::map<uint32_t, std::shared_ptr<Node>> nodeLookup,
                    std::map<uint32_t, std::vector<Primitive *>> primitiveLookup,
-                   std::vector<Animation *> animations,
+                   std::vector<std::unique_ptr<Animation>> animations,
                    std::vector<std::shared_ptr<Skin>> skins) {
         this->nodes = std::move(nodes);
         this->nodeLookup = std::move(nodeLookup);

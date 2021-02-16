@@ -20,20 +20,12 @@ namespace pvk {
     public:
         CommandBuffer(vk::CommandBuffer* commandBuffer, uint32_t swapchainIndex) : commandBuffer(commandBuffer), swapchainIndex(swapchainIndex) {};
         
-        void bindPipeline(Pipeline *pipeline) {
-            this->commandBuffer->bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline->vulkanPipeline);
-            this->currentPipeline = pipeline;
-        }
-
-        void drawNode(const gltf::Object &object, const gltf::Node &node) {
-            if (this->currentPipeline == 0) {
-                throw std::runtime_error("No active pipeline defined");
-            }
-            
+        void drawNode(const Pipeline &pipeline, const gltf::Object &object, const gltf::Node &node) {
+            this->commandBuffer->bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline.getVulkanPipeline().get());
             this->commandBuffer->bindVertexBuffers(0, object.vertexBuffer, {0});
             if (object.indices.empty()) {
                 this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
-                                                        this->currentPipeline->pipelineLayout, 0, 1,
+                                                        pipeline.getPipelineLayout().get(), 0, 1,
                                                         &node.descriptorSets[this->swapchainIndex].get(), 0, nullptr);
                 for (auto &primitive : object.primitiveLookup.at(node.nodeIndex)) {
                     this->commandBuffer->draw(primitive->vertexCount, 1, primitive->startVertex, 0);
@@ -41,7 +33,7 @@ namespace pvk {
             } else {
                 this->commandBuffer->bindIndexBuffer(object.indexBuffer, 0, vk::IndexType::eUint32);
                 this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
-                                                        this->currentPipeline->pipelineLayout, 0, 1,
+                                                        pipeline.getPipelineLayout().get(), 0, 1,
                                                         &node.descriptorSets[this->swapchainIndex].get(), 0, nullptr);
 
                 for (auto &primitive : node.primitives) {
@@ -53,7 +45,6 @@ namespace pvk {
     private:
         vk::CommandBuffer* commandBuffer;
         uint32_t swapchainIndex;
-        Pipeline* currentPipeline = 0;
     };
 }
 

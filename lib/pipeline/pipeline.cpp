@@ -9,10 +9,7 @@
 
 namespace pvk {
     Pipeline::~Pipeline() {
-        Context::getLogicalDevice().destroyDescriptorSetLayout(this->descriptorSetLayout, nullptr);
         Context::getLogicalDevice().destroyDescriptorPool(this->descriptorPool, nullptr);
-        Context::getLogicalDevice().destroyPipelineLayout(this->pipelineLayout, nullptr);
-        Context::getLogicalDevice().destroyPipeline(this->vulkanPipeline, nullptr);
     }
     
     void Pipeline::registerObject(std::shared_ptr<Object> object) {
@@ -155,5 +152,13 @@ namespace pvk {
         if (sizes.empty()) { sizes = {}; }
 
         sizes[descriptorSetBindingIndex] = size;
+    }
+
+    auto Pipeline::getVulkanPipeline() const -> const vk::UniquePipeline & {
+        return vulkanPipeline;
+    }
+
+    auto Pipeline::getPipelineLayout() const -> const vk::UniquePipelineLayout & {
+        return pipelineLayout;
     }
 }

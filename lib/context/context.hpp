@@ -8,35 +8,62 @@
 #ifndef context_hpp
 #define context_hpp
 
-#include <stdio.h>
+#include <cstdio>
 #include <vector>
 #include <vulkan/vulkan.hpp>
 
 namespace pvk {
     class Context {
-    private:
-        static Context* context;
-        static const vk::PhysicalDevice *physicalDevice;
-        static const vk::UniqueDevice *logicalDevice;
-        static const vk::UniqueCommandPool *commandPool;
-        static const vk::PipelineCache *pipelineCache;
-        static const std::vector<vk::Image> *swapchainImages;
-        
-        Context();
     public:
-        static Context* get();
-        
-        static void setPhysicalDevice(const vk::PhysicalDevice *physicalDevice);
-        static void setLogicalDevice(const vk::UniqueDevice *logicalDevice);
-        static void setCommandPool(const vk::UniqueCommandPool *commandPool);
-        static void setPipelineCache(const vk::PipelineCache *pipelineCache);
+        static auto get() {
+            return Context::context;
+        }
+
+        static void setPhysicalDevice(vk::PhysicalDevice &&_physicalDevice) {
+            Context::physicalDevice = _physicalDevice;
+        }
+
+        static void setLogicalDevice(vk::UniqueDevice &&_logicalDevice) {
+            Context::logicalDevice = std::move(_logicalDevice);
+        }
+
+        static void setCommandPool(vk::UniqueCommandPool &&_commandPool) {
+            Context::commandPool = std::move(_commandPool);
+        }
+
+        static void setPipelineCache(vk::UniquePipelineCache &&_pipelineCache) {
+            Context::pipelineCache = std::move(_pipelineCache);
+        }
+
         static void setSwapchainImages(const std::vector<vk::Image>* swapchainImages);
         
-        static const vk::PhysicalDevice getPhysicalDevice();
-        static const vk::Device getLogicalDevice();
-        static const vk::CommandPool getCommandPool();
-        static const vk::PipelineCache getPipelineCache();
+        static auto getPhysicalDevice() -> vk::PhysicalDevice {
+            return Context::physicalDevice;
+        }
+
+        static auto getLogicalDevice() -> vk::Device {
+            return Context::logicalDevice.get();
+        }
+
+        static auto getCommandPool() -> vk::CommandPool {
+            return Context::commandPool.get();
+        }
+
+        static auto getPipelineCache() -> vk::PipelineCache {
+            return Context::pipelineCache.get();
+        }
+
         static const std::vector<vk::Image> getSwapchainImages();
+
+    private:
+        static const Context context;
+        static vk::PhysicalDevice physicalDevice;
+        static vk::UniqueDevice logicalDevice;
+        static vk::UniqueCommandPool commandPool;
+        static vk::UniquePipelineCache pipelineCache;
+        static const std::vector<vk::Image> *swapchainImages;
+
+        Context() = default;
     };
 }
 

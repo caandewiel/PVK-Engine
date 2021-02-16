@@ -18,10 +18,10 @@
 namespace pvk::pipeline {
         class Builder {
         public:
-            Builder(const vk::RenderPass &renderPass, const vk::PipelineLayout &pipelineLayout);
+            Builder(const vk::RenderPass &renderPass, const vk::UniquePipelineLayout &pipelineLayout);
             ~Builder();
-            vk::Pipeline create(const vk::PipelineCache &cache);
-            vk::Pipeline create();
+            vk::UniquePipeline create(const vk::PipelineCache &cache);
+            vk::UniquePipeline create();
             void update();
             void initialize();
             

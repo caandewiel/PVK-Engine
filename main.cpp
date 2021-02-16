@@ -4,8 +4,8 @@
 #include "lib/application/application.hpp"
 
 class App : public Application {
-    pvk::Pipeline *_pipeline;
-    pvk::Pipeline *_skyboxPipeline;
+    std::unique_ptr<pvk::Pipeline> _pipeline;
+    std::unique_ptr<pvk::Pipeline> _skyboxPipeline;
 
     std::shared_ptr<pvk::Object> _fox;
     std::shared_ptr<pvk::Object> _skyboxObject;
@@ -70,11 +70,11 @@ class App : public Application {
         _skyboxPipeline->prepare();
 
         uniformBufferObject.view = camera->getViewMatrix();
-        uniformBufferObject.projection = glm::perspective(glm::radians(30.0f),
+        uniformBufferObject.projection = glm::perspective(glm::radians(30.0F),
                                                           swapChainExtent.width / (float) swapChainExtent.height, 0.1f,
-                                                          1000.0f);
+                                                          1000.0F);
         uniformBufferObject.projection[1][1] *= -1;
-        uniformBufferObject.lightPosition = glm::vec3(0.0f, 0.0f, 5.0f);
+        uniformBufferObject.lightPosition = glm::vec3(0.0F, 0.0F, 5.0F);
 
         auto setMaterial = [](pvk::gltf::Object &object, pvk::gltf::Node &node, vk::DeviceMemory &memory) {
             struct {
@@ -94,7 +94,7 @@ class App : public Application {
     void update() override {
         uniformBufferObject.view = camera->getViewMatrix();
         uniformBufferObject.cameraPosition = camera->position;
-        uniformBufferObject.lightPosition += glm::vec3(0, 0, 10.0f * this->deltaTime);
+        uniformBufferObject.lightPosition += glm::vec3(0, 0, 10.0F * this->deltaTime);
 
         _fox->updateUniformBuffer(0, sizeof(uniformBufferObject), &uniformBufferObject);
         _skyboxObject->updateUniformBuffer(0, sizeof(uniformBufferObject), &uniformBufferObject);
@@ -102,7 +102,7 @@ class App : public Application {
         const auto setUniformBufferObject = [](pvk::gltf::Object &object,
                                                pvk::gltf::Node &node,
                                                vk::DeviceMemory &memory) {
-            node.bufferObject.model = glm::scale(glm::mat4(1.0f), glm::vec3(0.1f));
+            node.bufferObject.model = glm::scale(glm::mat4(1.0f), glm::vec3(0.1F));
             node.bufferObject.localMatrix = node.getGlobalMatrix();
 
             auto &inverseBindMatrices = object.inverseBindMatrices;
@@ -124,33 +124,26 @@ class App : public Application {
             pvk::buffer::update(memory, sizeof(node.bufferObject), &node.bufferObject);
         };
 
-        _fox->getAnimations()[0]->update(this->deltaTime);
+        _fox->getAnimation(0).update(this->deltaTime);
         _fox->gltfObject->updateJoints();
         _fox->updateUniformBufferPerNode(1, setUniformBufferObject);
         _skyboxObject->updateUniformBufferPerNode(1, setUniformBufferObject);
     }
 
     void render(pvk::CommandBuffer *commandBuffer) override {
-        commandBuffer->bindPipeline(_skyboxPipeline);
-
-        for (auto &node : _skyboxObject->getNodes()) {
-            commandBuffer->drawNode(*_skyboxObject->gltfObject, *node);
+        for (auto &node : _skyboxObject->gltfObject->nodeLookup) {
+            commandBuffer->drawNode(*_skyboxPipeline, *_skyboxObject->gltfObject, *node.second);
         }
-
-        commandBuffer->bindPipeline(_pipeline);
 
         for (auto &node : _fox->gltfObject->nodeLookup) {
-            commandBuffer->drawNode(*_fox->gltfObject, *node.second);
+            commandBuffer->drawNode(*_pipeline, *_fox->gltfObject, *node.second);
         }
     }
 
-    void tearDown() override {
-//        delete _pipeline;
-//        delete _skyboxPipeline;
-    }
+    void tearDown() override {}
 };
 
-int main() {
+auto main() -> int {
     App app;
 
     try {

@@ -24,7 +24,9 @@ namespace pvk {
 
         [[nodiscard]] const std::vector<std::shared_ptr<gltf::Node>> & getNodes() const;
 
-        [[nodiscard]] const std::vector<gltf::Animation *> & getAnimations() const;
+        [[nodiscard]] auto getAnimation(uint32_t animationIndex) const -> const gltf::Animation &;
+
+        [[nodiscard]] auto getAnimation(uint32_t animationIndex) -> gltf::Animation &;
 
         void updateUniformBuffer(uint32_t bindingIndex, size_t size, void *data) const;
 

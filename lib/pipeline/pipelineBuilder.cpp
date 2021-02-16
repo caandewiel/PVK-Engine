@@ -9,8 +9,8 @@
 
 namespace pvk::pipeline {
     Builder::Builder(const vk::RenderPass &renderPass,
-                     const vk::PipelineLayout &pipelineLayout) {
-        this->pipelineCreateInfo.setLayout(pipelineLayout);
+                     const vk::UniquePipelineLayout &pipelineLayout) {
+        this->pipelineCreateInfo.setLayout(pipelineLayout.get());
         this->pipelineCreateInfo.setRenderPass(renderPass);
 
         this->initialize();
@@ -41,7 +41,7 @@ namespace pvk::pipeline {
         this->colorBlendState.logicOp = vk::LogicOp::eCopy;
 
         this->rasterizationState.setCullMode(vk::CullModeFlagBits::eBack);
-        this->rasterizationState.setLineWidth(1.0f);
+        this->rasterizationState.setLineWidth(1.0F);
     }
 
     void Builder::update() {
@@ -61,13 +61,14 @@ namespace pvk::pipeline {
         this->viewportState.setScissors(this->scissors);
     }
 
-    vk::Pipeline Builder::create(const vk::PipelineCache &cache) {
+    auto Builder::create(const vk::PipelineCache &cache) -> vk::UniquePipeline {
         this->update();
 
-        return pvk::Context::getLogicalDevice().createGraphicsPipeline(nullptr, this->pipelineCreateInfo);
+        return Context::getLogicalDevice()
+            .createGraphicsPipelineUnique(nullptr, this->pipelineCreateInfo).value;
     }
 
-    vk::Pipeline Builder::create() {
+    auto Builder::create() -> vk::UniquePipeline {
         return this->create(this->pipelineCache);
     }
 }
