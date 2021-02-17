@@ -18,7 +18,7 @@ namespace pvk {
         Context::swapchainImages = swapchainImages;
     }
     
-    const std::vector<vk::Image> Context::getSwapchainImages() {
+    auto Context::getSwapchainImages() -> const std::vector<vk::Image> {
         if (swapchainImages == 0) {
             throw std::runtime_error("Swapchain images are undefined");
         }

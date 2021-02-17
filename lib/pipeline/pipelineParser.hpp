@@ -90,9 +90,7 @@ namespace pvk {
         }
 
         // Create native Vulkan descriptor set layouts for all defined descriptor sets
-        std::vector<vk::UniqueDescriptorSetLayout> descriptorSetLayouts;
-        descriptorSetLayouts.reserve(_descriptorSets.size());
-
+        std::vector<vk::UniqueDescriptorSetLayout> descriptorSetLayouts {};
         std::vector<std::vector<vk::DescriptorSetLayoutBinding>> descriptorSetLayoutBindingsLookup;
 
         for (auto &_descriptorSet : _descriptorSets) {
@@ -114,22 +112,13 @@ namespace pvk {
             vk::DescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo{};
             descriptorSetLayoutCreateInfo.setBindings(descriptorSetLayoutBindings);
 
-            auto descriptorSetLayout = Context::getLogicalDevice().createDescriptorSetLayoutUnique(descriptorSetLayoutCreateInfo);
-
-            descriptorSetLayouts.emplace_back(std::move(descriptorSetLayout));
+            descriptorSetLayouts.emplace_back(std::move(Context::getLogicalDevice().createDescriptorSetLayoutUnique(descriptorSetLayoutCreateInfo)));
         }
 
         // Create the pipeline layout
-        vk::PipelineLayoutCreateInfo pipelineCreateInfo{};
-        pipelineCreateInfo.setSetLayouts([&]() {
-            std::vector<vk::DescriptorSetLayout> _descriptorSetLayouts;
-
-            for (auto &descriptorSetLayout : descriptorSetLayouts) {
-                _descriptorSetLayouts.emplace_back(descriptorSetLayout.get());
-            }
-
-            return _descriptorSetLayouts;
-        }());
+        vk::PipelineLayoutCreateInfo pipelineCreateInfo;
+        auto rawDescriptorSetLayouts = vk::uniqueToRaw(descriptorSetLayouts);
+        pipelineCreateInfo.setSetLayouts(rawDescriptorSetLayouts);
         auto pipelineLayout = Context::getLogicalDevice()
                 .createPipelineLayoutUnique(pipelineCreateInfo);
 
@@ -195,7 +184,7 @@ namespace pvk {
                 std::move(pipelineLayout)
         );
 
-        pipeline->setDescriptorSetLayouts(descriptorSetLayouts);
+        pipeline->setDescriptorSetLayouts(std::move(descriptorSetLayouts));
         pipeline->setDescriptorSetLayoutBindingsLookup(descriptorSetLayoutBindingsLookup);
 
         return pipeline;

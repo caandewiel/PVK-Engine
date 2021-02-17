@@ -33,38 +33,38 @@ namespace pvk {
     };
     
     namespace buffer {
-        void create(vk::DeviceSize size,
-                    vk::BufferUsageFlags usage,
-                    vk::MemoryPropertyFlags properties,
-                    vk::Buffer &buffer,
-                    vk::DeviceMemory &bufferMemory);
+        void create(const unsigned long long int size,
+                    const vk::BufferUsageFlags usage,
+                    const vk::MemoryPropertyFlags properties,
+                    vk::UniqueBuffer &buffer,
+                    vk::UniqueDeviceMemory &bufferMemory);
         
         void copy(vk::Queue &graphicsQueue,
-                  vk::Buffer &srcBuffer,
-                  vk::Buffer &dstBuffer,
+                  vk::UniqueBuffer &srcBuffer,
+                  vk::UniqueBuffer &dstBuffer,
                   vk::DeviceSize size);
         
         void copyToImage(const vk::CommandBuffer &commandBuffer,
                          const vk::Queue &graphicsQueue,
-                         const vk::Buffer &buffer,
+                         const vk::UniqueBuffer &buffer,
                          const vk::Image &image,
                          uint32_t width, uint32_t height);
         
-        void update(vk::DeviceMemory bufferMemory,
+        void update(const vk::UniqueDeviceMemory &bufferMemory,
                     size_t bufferSize,
                     void* data);
         
         namespace vertex {
             void create(vk::Queue &graphicsQueue,
-                        vk::Buffer &buffer,
-                        vk::DeviceMemory &bufferMemory,
+                        vk::UniqueBuffer &buffer,
+                        vk::UniqueDeviceMemory &bufferMemory,
                         std::vector<Vertex> &vertices);
         }
         
         namespace index {
             void create(vk::Queue &graphicsQueue,
-                        vk::Buffer &buffer,
-                        vk::DeviceMemory &bufferMemory,
+                        vk::UniqueBuffer &buffer,
+                        vk::UniqueDeviceMemory &bufferMemory,
                         std::vector<uint32_t> &indices);
         }
         

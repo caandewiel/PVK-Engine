@@ -51,8 +51,6 @@ namespace pvk {
         auto object = std::make_unique<gltf::Object>();
 
         auto primitiveLookup = GLTFLoader::loadPrimitives(model, graphicsQueue, *object);
-        auto vertexBuffer = createVertexBuffer(graphicsQueue, object);
-        auto indexBuffer = createIndexBuffer(graphicsQueue, object);
 
         object->nodes = GLTFLoader::loadNodes(model, primitiveLookup, graphicsQueue, *object);
         object->nodeLookup = GLTFLoader::initializeNodeLookupTable(object->nodes);
@@ -60,8 +58,17 @@ namespace pvk {
         object->animations = GLTFLoader::loadAnimations(model, object->nodeLookup);
         GLTFLoader::loadMaterials(model, graphicsQueue, *object);
 
-        vertexBuffer.get();
-        indexBuffer.get();
+        buffer::vertex::create(graphicsQueue,
+                               object->vertexBuffer,
+                               object->vertexBufferMemory,
+                               object->vertices);
+
+        if (!object->indices.empty()) {
+            buffer::index::create(graphicsQueue,
+                                  object->indexBuffer,
+                                  object->indexBufferMemory,
+                                  object->indices);
+        }
 
         t2 = std::chrono::high_resolution_clock::now();
         duration = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();

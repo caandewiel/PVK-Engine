@@ -12,8 +12,8 @@
 #include "buffer.hpp"
 
 namespace pvk::buffer {
-    inline uint32_t findMemoryType(const uint32_t typeFilter,
-                                   const vk::MemoryPropertyFlags properties) {
+    inline auto findMemoryType(const uint32_t typeFilter,
+                               const vk::MemoryPropertyFlags properties) -> uint32_t {
         vk::PhysicalDeviceMemoryProperties memProperties = Context::getPhysicalDevice().getMemoryProperties();
 
         for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
@@ -31,76 +31,74 @@ namespace pvk::buffer {
     void create(const vk::DeviceSize size,
                 const vk::BufferUsageFlags usage,
                 const vk::MemoryPropertyFlags properties,
-                vk::Buffer &buffer,
-                vk::DeviceMemory &bufferMemory) {
+                vk::UniqueBuffer &buffer,
+                vk::UniqueDeviceMemory &bufferMemory) {
         vk::BufferCreateInfo bufferInfo = {};
         bufferInfo.size = size;
         bufferInfo.usage = usage;
         bufferInfo.sharingMode = vk::SharingMode::eExclusive;
 
         try {
-            buffer = Context::getLogicalDevice().createBuffer(bufferInfo);
+            buffer = Context::getLogicalDevice().createBufferUnique(bufferInfo);
         }
         catch (vk::SystemError &error) {
-            throw std::runtime_error("failed to create buffer!");
+            throw std::runtime_error("Failed to create buffer.");
         }
 
-        vk::MemoryRequirements memRequirements = Context::getLogicalDevice().getBufferMemoryRequirements(buffer);
+        vk::MemoryRequirements memRequirements = Context::getLogicalDevice().getBufferMemoryRequirements(buffer.get());
 
         vk::MemoryAllocateInfo allocInfo = {};
         allocInfo.allocationSize = memRequirements.size;
         allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
 
         try {
-            bufferMemory = Context::getLogicalDevice().allocateMemory(allocInfo);
+            bufferMemory = Context::getLogicalDevice().allocateMemoryUnique(allocInfo);
         }
         catch (vk::SystemError &error) {
             throw std::runtime_error("Failed to allocate buffer memory.");
         }
 
-        Context::getLogicalDevice().bindBufferMemory(buffer, bufferMemory, 0);
+        Context::getLogicalDevice().bindBufferMemory(buffer.get(), bufferMemory.get(), 0);
     }
 
     /**
      Copies the contents from the source buffer to the target buffer.
      */
     void copy(vk::Queue &graphicsQueue,
-              vk::Buffer &srcBuffer,
-              vk::Buffer &dstBuffer,
+              vk::UniqueBuffer &srcBuffer,
+              vk::UniqueBuffer &dstBuffer,
               vk::DeviceSize size) {
         vk::CommandBufferAllocateInfo allocInfo = {};
         allocInfo.level = vk::CommandBufferLevel::ePrimary;
         allocInfo.commandPool = Context::getCommandPool();
         allocInfo.commandBufferCount = 1;
 
-        vk::CommandBuffer commandBuffer = Context::getLogicalDevice().allocateCommandBuffers(allocInfo)[0];
+        auto commandBuffer = std::move(Context::getLogicalDevice().allocateCommandBuffersUnique(allocInfo)[0]);
 
         vk::CommandBufferBeginInfo beginInfo = {};
         beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
 
-        commandBuffer.begin(beginInfo);
+        commandBuffer.get().begin(beginInfo);
 
         vk::BufferCopy copyRegion = {};
         copyRegion.srcOffset = 0; // Optional
         copyRegion.dstOffset = 0; // Optional
         copyRegion.size = size;
-        commandBuffer.copyBuffer(srcBuffer, dstBuffer, copyRegion);
+        commandBuffer.get().copyBuffer(srcBuffer.get(), dstBuffer.get(), copyRegion);
 
-        commandBuffer.end();
+        commandBuffer.get().end();
 
         vk::SubmitInfo submitInfo = {};
         submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &commandBuffer;
+        submitInfo.pCommandBuffers = &commandBuffer.get();
 
         graphicsQueue.submit(submitInfo, nullptr);
         graphicsQueue.waitIdle();
-
-        Context::getLogicalDevice().freeCommandBuffers(Context::getCommandPool(), commandBuffer);
     }
 
     void copyToImage(const vk::CommandBuffer &commandBuffer,
                      const vk::Queue &graphicsQueue,
-                     const vk::Buffer &buffer,
+                     const vk::UniqueBuffer &buffer,
                      const vk::Image &image,
                      uint32_t width, uint32_t height) {
         vk::BufferImageCopy region = {
@@ -110,34 +108,33 @@ namespace pvk::buffer {
                 {width, height, 1},
         };
 
-        commandBuffer.copyBufferToImage(buffer, image, vk::ImageLayout::eTransferDstOptimal, region);
+        commandBuffer.copyBufferToImage(buffer.get(), image, vk::ImageLayout::eTransferDstOptimal, region);
     }
 
 
-    void update(vk::DeviceMemory bufferMemory, size_t bufferSize, void *data) {
+    void update(const vk::UniqueDeviceMemory &bufferMemory, size_t bufferSize, void *data) {
         void *dataMapped;
-        vkMapMemory(Context::getLogicalDevice(), bufferMemory, 0, bufferSize, 0, &dataMapped);
+        vkMapMemory(Context::getLogicalDevice(), bufferMemory.get(), 0, bufferSize, 0, &dataMapped);
         memcpy(dataMapped, data, bufferSize);
-        vkUnmapMemory(Context::getLogicalDevice(), bufferMemory);
+        vkUnmapMemory(Context::getLogicalDevice(), bufferMemory.get());
     }
 
     namespace vertex {
         void create(vk::Queue &graphicsQueue,
-                    vk::Buffer &buffer,
-                    vk::DeviceMemory &bufferMemory,
+                    vk::UniqueBuffer &buffer,
+                    vk::UniqueDeviceMemory &bufferMemory,
                     std::vector<Vertex> &vertices) {
             vk::DeviceSize bufferSize = sizeof(vertices.front()) * vertices.size();
 
-            vk::Buffer stagingBuffer;
-            vk::DeviceMemory stagingBufferMemory;
+            vk::UniqueBuffer stagingBuffer;
+            vk::UniqueDeviceMemory stagingBufferMemory;
             pvk::buffer::create(bufferSize,
                                 vk::BufferUsageFlagBits::eTransferSrc,
                                 vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
                                 stagingBuffer,
                                 stagingBufferMemory);
-            void *data = Context::getLogicalDevice().mapMemory(stagingBufferMemory, 0, bufferSize);
+            void *data = Context::getLogicalDevice().mapMemory(stagingBufferMemory.get(), 0, bufferSize);
             memcpy(data, vertices.data(), (size_t) bufferSize);
-            Context::getLogicalDevice().unmapMemory(stagingBufferMemory);
 
             pvk::buffer::create(bufferSize,
                                 vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer,
@@ -146,29 +143,25 @@ namespace pvk::buffer {
                                 bufferMemory);
 
             pvk::buffer::copy(graphicsQueue, stagingBuffer, buffer, bufferSize);
-
-            Context::getLogicalDevice().destroyBuffer(stagingBuffer);
-            Context::getLogicalDevice().freeMemory(stagingBufferMemory);
         }
     }
 
     namespace index {
         void create(vk::Queue &graphicsQueue,
-                    vk::Buffer &buffer,
-                    vk::DeviceMemory &bufferMemory,
+                    vk::UniqueBuffer &buffer,
+                    vk::UniqueDeviceMemory &bufferMemory,
                     std::vector<uint32_t> &indices) {
             vk::DeviceSize bufferSize = sizeof(indices.front()) * indices.size();
 
-            vk::Buffer stagingBuffer;
-            vk::DeviceMemory stagingBufferMemory;
+            vk::UniqueBuffer stagingBuffer;
+            vk::UniqueDeviceMemory stagingBufferMemory;
             pvk::buffer::create(bufferSize,
                                 vk::BufferUsageFlagBits::eTransferSrc,
                                 vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
                                 stagingBuffer,
                                 stagingBufferMemory);
-            void *data = Context::getLogicalDevice().mapMemory(stagingBufferMemory, 0, bufferSize);
+            void *data = Context::getLogicalDevice().mapMemory(stagingBufferMemory.get(), 0, bufferSize);
             memcpy(data, indices.data(), (size_t) bufferSize);
-            Context::getLogicalDevice().unmapMemory(stagingBufferMemory);
 
             pvk::buffer::create(bufferSize,
                                 vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer,
@@ -177,16 +170,13 @@ namespace pvk::buffer {
                                 bufferMemory);
 
             pvk::buffer::copy(graphicsQueue, stagingBuffer, buffer, bufferSize);
-
-            Context::getLogicalDevice().destroyBuffer(stagingBuffer);
-            Context::getLogicalDevice().freeMemory(stagingBufferMemory);
         }
     }
 
     namespace texture {
         void createEmpty(const vk::Queue &graphicsQueue, pvk::Texture &texture) {
-            vk::Buffer stagingBuffer;
-            vk::DeviceMemory stagingBufferMemory;
+            vk::UniqueBuffer stagingBuffer;
+            vk::UniqueDeviceMemory stagingBufferMemory;
 
             unsigned char pixels[] = {0, 0, 0, 0};
 
@@ -196,9 +186,8 @@ namespace pvk::buffer {
                                 stagingBuffer,
                                 stagingBufferMemory);
 
-            void *data = Context::getLogicalDevice().mapMemory(stagingBufferMemory, 0, sizeof(pixels));
+            void *data = Context::getLogicalDevice().mapMemory(stagingBufferMemory.get(), 0, sizeof(pixels));
             memcpy(data, &pixels, sizeof(pixels));
-            Context::getLogicalDevice().unmapMemory(stagingBufferMemory);
 
             vk::BufferImageCopy bufferCopyRegion;
             bufferCopyRegion.imageSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
@@ -255,16 +244,13 @@ namespace pvk::buffer {
                     {},
                     vk::ImageSubresourceRange{vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1},
             });
-
-            Context::getLogicalDevice().destroyBuffer(stagingBuffer);
-            Context::getLogicalDevice().freeMemory(stagingBufferMemory);
         }
 
         void create(const vk::Queue &graphicsQueue,
                     const tinygltf::Image &gltfImage,
                     pvk::Texture &texture) {
-            vk::Buffer stagingBuffer;
-            vk::DeviceMemory stagingBufferMemory;
+            vk::UniqueBuffer stagingBuffer;
+            vk::UniqueDeviceMemory stagingBufferMemory;
 
             assert(gltfImage.component != 3);
 
@@ -274,9 +260,8 @@ namespace pvk::buffer {
                                 stagingBuffer,
                                 stagingBufferMemory);
 
-            void *data = Context::getLogicalDevice().mapMemory(stagingBufferMemory, 0, gltfImage.image.size());
+            void *data = Context::getLogicalDevice().mapMemory(stagingBufferMemory.get(), 0, gltfImage.image.size());
             memcpy(data, gltfImage.image.data(), gltfImage.image.size());
-            Context::getLogicalDevice().unmapMemory(stagingBufferMemory);
 
             auto width = static_cast<uint32_t>(gltfImage.width);
             auto height = static_cast<uint32_t>(gltfImage.height);
@@ -324,7 +309,7 @@ namespace pvk::buffer {
             // Max level-of-detail should match mip level count
             samplerCreateInfo.maxLod = static_cast<float>(1);
             // Only enable anisotropic filtering if enabled on the devicec
-            samplerCreateInfo.maxAnisotropy = 1.0f;
+            samplerCreateInfo.maxAnisotropy = 1.0F;
             samplerCreateInfo.anisotropyEnable = VK_FALSE;
             samplerCreateInfo.borderColor = vk::BorderColor::eFloatOpaqueWhite;
             texture.sampler = Context::getLogicalDevice().createSamplerUnique(samplerCreateInfo);
@@ -337,25 +322,21 @@ namespace pvk::buffer {
                     {},
                     vk::ImageSubresourceRange{vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1},
             });
-
-            Context::getLogicalDevice().destroyBuffer(stagingBuffer);
-            Context::getLogicalDevice().freeMemory(stagingBufferMemory);
         }
 
         void create(const vk::Queue &graphicsQueue,
                     const gli::texture_cube &textureCube,
                     pvk::Texture &texture) {
-            vk::Buffer stagingBuffer;
-            vk::DeviceMemory stagingBufferMemory;
+            vk::UniqueBuffer stagingBuffer;
+            vk::UniqueDeviceMemory stagingBufferMemory;
             pvk::buffer::create(textureCube.size(),
                                 vk::BufferUsageFlagBits::eTransferSrc,
                                 vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
                                 stagingBuffer,
                                 stagingBufferMemory);
 
-            void *data = Context::getLogicalDevice().mapMemory(stagingBufferMemory, 0, textureCube.size());
+            void *data = Context::getLogicalDevice().mapMemory(stagingBufferMemory.get(), 0, textureCube.size());
             memcpy(data, textureCube.data(), textureCube.size());
-            Context::getLogicalDevice().unmapMemory(stagingBufferMemory);
 
             auto width = static_cast<uint32_t>(textureCube.extent().x);
             auto height = static_cast<uint32_t>(textureCube.extent().y);
@@ -421,7 +402,7 @@ namespace pvk::buffer {
             // Max level-of-detail should match mip level count
             samplerCreateInfo.maxLod = static_cast<float>(mipLevels);
             // Only enable anisotropic filtering if enabled on the devicec
-            samplerCreateInfo.maxAnisotropy = 1.0f;
+            samplerCreateInfo.maxAnisotropy = 1.0F;
             samplerCreateInfo.anisotropyEnable = VK_FALSE;
             samplerCreateInfo.borderColor = vk::BorderColor::eFloatOpaqueWhite;
             texture.sampler = Context::getLogicalDevice().createSamplerUnique(samplerCreateInfo);
@@ -435,9 +416,6 @@ namespace pvk::buffer {
                     vk::ImageSubresourceRange{vk::ImageAspectFlagBits::eColor, 0, mipLevels, 0,
                                               NUMBER_OF_FACES_FOR_CUBE},
             });
-
-            Context::getLogicalDevice().destroyBuffer(stagingBuffer);
-            Context::getLogicalDevice().freeMemory(stagingBufferMemory);
         }
     }
 

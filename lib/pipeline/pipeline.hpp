@@ -24,7 +24,6 @@
 #include "../pipeline/pipelineBuilder.hpp"
 #include "../camera/camera.hpp"
 #include "../texture/texture.hpp"
-#include "../io/io.hpp"
 
 namespace pvk {
     class Pipeline {
@@ -70,7 +69,7 @@ namespace pvk {
         std::vector<std::vector<vk::DescriptorSetLayoutBinding>> descriptorSetLayoutBindingsLookup;
         std::unordered_map<uint8_t, std::unordered_map<uint8_t, size_t>> descriptorSetLayoutBindingSizesLookup;
     public:
-        void setDescriptorSetLayouts(std::vector<vk::UniqueDescriptorSetLayout> &newDescriptorSetLayouts);
+        void setDescriptorSetLayouts(std::vector<vk::UniqueDescriptorSetLayout> &&newDescriptorSetLayouts);
 
         void setDescriptorSetLayoutBindingsLookup(
                 const std::vector<std::vector<vk::DescriptorSetLayoutBinding>> &newDescriptorSetLayoutBindingsLookup);

@@ -120,7 +120,7 @@ namespace pvk {
                             node.uniformBuffers[descriptor.binding][i],
                             node.uniformBuffersMemory[descriptor.binding][i]);
         
-        node.descriptorBuffersInfo[descriptor.binding][i].buffer   = node.uniformBuffers[descriptor.binding][i];
+        node.descriptorBuffersInfo[descriptor.binding][i].buffer   = node.uniformBuffers[descriptor.binding][i].get();
         node.descriptorBuffersInfo[descriptor.binding][i].offset   = 0;
         node.descriptorBuffersInfo[descriptor.binding][i].range    = this->descriptorSetLayoutBindingSizesLookup[0][descriptor.binding];
 
@@ -135,7 +135,7 @@ namespace pvk {
         writeDescriptorSets.emplace_back(node.descriptorSets[i].get(), descriptor.binding, 0, 1, vk::DescriptorType::eCombinedImageSampler, this->textures[descriptor.binding]->getDescriptorImageInfo());
     }
 
-    void Pipeline::setDescriptorSetLayouts(std::vector<vk::UniqueDescriptorSetLayout> &newDescriptorSetLayouts) {
+    void Pipeline::setDescriptorSetLayouts(std::vector<vk::UniqueDescriptorSetLayout> &&newDescriptorSetLayouts) {
         this->descriptorSetLayouts = std::move(newDescriptorSetLayouts);
     }
 

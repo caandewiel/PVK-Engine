@@ -40,10 +40,10 @@ namespace pvk::gltf {
         std::vector<Vertex> vertices;
         std::vector<uint32_t> indices;
         std::vector<Material*> materials;
-        vk::Buffer vertexBuffer;
-        vk::DeviceMemory vertexBufferMemory;
-        vk::Buffer indexBuffer;
-        vk::DeviceMemory indexBufferMemory;
+        vk::UniqueBuffer vertexBuffer;
+        vk::UniqueDeviceMemory vertexBufferMemory;
+        vk::UniqueBuffer indexBuffer;
+        vk::UniqueDeviceMemory indexBufferMemory;
 
         void initializeWriteDescriptorSets(const vk::Device &logicalDevice,
                                            const vk::DescriptorPool &descriptorPool,

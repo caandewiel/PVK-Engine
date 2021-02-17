@@ -33,7 +33,7 @@ namespace pvk {
         void updateUniformBufferPerNode(uint32_t bindingIndex,
                                         const std::function<void(pvk::gltf::Object &object,
                                                                  pvk::gltf::Node &node,
-                                                                 vk::DeviceMemory &memory)> &function) const;
+                                                                 vk::UniqueDeviceMemory &memory)> &function) const;
 
         // @TODO: Make this private
         std::unique_ptr<gltf::Object> gltfObject;

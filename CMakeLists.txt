@@ -45,7 +45,6 @@ SET(PUBLIC_HEADERS
         lib/texture/texture.hpp
         lib/util/util.hpp
         lib/gltf/GLTFSkin.hpp
-        lib/io/io.hpp
         lib/gltf/GLTFMaterial.hpp lib/pipeline/pipelineParser.hpp)
 
 SET(SOURCES
@@ -70,7 +69,7 @@ SET(SOURCES
         lib/shader/shader.cpp
         lib/texture/texture.cpp
         lib/util/util.cpp
-        lib/gltf/GLTFSkin.cpp lib/io/io.cpp)
+        lib/gltf/GLTFSkin.cpp)
 
 add_executable(${PROJECT_NAME} main.cpp ${PUBLIC_HEADERS} ${SOURCES})
 

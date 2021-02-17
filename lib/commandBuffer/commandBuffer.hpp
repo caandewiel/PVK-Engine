@@ -13,7 +13,6 @@
 
 #include "../pipeline/pipeline.hpp"
 #include "../gltf/GLTFNode.hpp"
-#include "../io/io.hpp"
 
 namespace pvk {
     class CommandBuffer {
@@ -22,7 +21,7 @@ namespace pvk {
         
         void drawNode(const Pipeline &pipeline, const gltf::Object &object, const gltf::Node &node) {
             this->commandBuffer->bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline.getVulkanPipeline().get());
-            this->commandBuffer->bindVertexBuffers(0, object.vertexBuffer, {0});
+            this->commandBuffer->bindVertexBuffers(0, object.vertexBuffer.get(), {0});
             if (object.indices.empty()) {
                 this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
                                                         pipeline.getPipelineLayout().get(), 0, 1,
@@ -31,7 +30,7 @@ namespace pvk {
                     this->commandBuffer->draw(primitive->vertexCount, 1, primitive->startVertex, 0);
                 }
             } else {
-                this->commandBuffer->bindIndexBuffer(object.indexBuffer, 0, vk::IndexType::eUint32);
+                this->commandBuffer->bindIndexBuffer(object.indexBuffer.get(), 0, vk::IndexType::eUint32);
                 this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
                                                         pipeline.getPipelineLayout().get(), 0, 1,
                                                         &node.descriptorSets[this->swapchainIndex].get(), 0, nullptr);

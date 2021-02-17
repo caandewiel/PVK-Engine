@@ -8,36 +8,11 @@
 #include "object.hpp"
 
 namespace pvk {
-    Object::Object() {}
+    Object::Object() = default;
 
-    Object::~Object() {
-        Context::getLogicalDevice().destroyBuffer(this->gltfObject->vertexBuffer, nullptr);
-        Context::getLogicalDevice().destroyBuffer(this->gltfObject->indexBuffer, nullptr);
-        Context::getLogicalDevice().freeMemory(this->gltfObject->vertexBufferMemory, nullptr);
-        Context::getLogicalDevice().freeMemory(this->gltfObject->indexBufferMemory, nullptr);
+    Object::~Object() = default;
 
-        for (auto &node : this->gltfObject->nodes) {
-            auto itUniformBuffer = node->uniformBuffers.begin();
-            while (itUniformBuffer != node->uniformBuffers.end()) {
-                for (auto &uniformBuffer : itUniformBuffer->second) {
-                    Context::getLogicalDevice().destroyBuffer(uniformBuffer, nullptr);
-                }
-
-                itUniformBuffer++;
-            }
-
-            auto itUniformBufferMemory = node->uniformBuffersMemory.begin();
-            while (itUniformBufferMemory != node->uniformBuffersMemory.end()) {
-                for (auto &uniformBufferMemory : itUniformBufferMemory->second) {
-                    Context::getLogicalDevice().freeMemory(uniformBufferMemory, nullptr);
-                }
-
-                itUniformBufferMemory++;
-            }
-        }
-    }
-
-    std::unique_ptr<Object> Object::createFromGLTF(vk::Queue &graphicsQueue, const std::string &filename) {
+    auto Object::createFromGLTF(vk::Queue &graphicsQueue, const std::string &filename) -> std::unique_ptr<Object> {
         auto object = std::unique_ptr<Object>(new Object());
 
         object->gltfObject = pvk::GLTFLoader::loadObject(graphicsQueue, filename);
@@ -58,7 +33,7 @@ namespace pvk {
     void Object::updateUniformBufferPerNode(uint32_t bindingIndex,
                                             const std::function<void(pvk::gltf::Object &object,
                                                                      pvk::gltf::Node &node,
-                                                                     vk::DeviceMemory &memory)> &function) const {
+                                                                     vk::UniqueDeviceMemory &memory)> &function) const {
         for (auto &node : this->gltfObject->nodeLookup) {
             auto &uniformBuffersMemory = node.second->uniformBuffersMemory[bindingIndex];
 
@@ -68,7 +43,7 @@ namespace pvk {
         }
     }
 
-    const std::vector<std::shared_ptr<gltf::Node>> & Object::getNodes() const {
+    const std::vector<std::shared_ptr<gltf::Node>> &Object::getNodes() const {
         return this->gltfObject->nodes;
     }
 

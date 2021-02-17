@@ -49,7 +49,7 @@ class App : public Application {
 
         // Load model
         auto t1 = std::chrono::high_resolution_clock::now();
-        _fox = pvk::Object::createFromGLTF(graphicsQueue, "/Users/christian/walk2.glb");
+        _fox = pvk::Object::createFromGLTF(graphicsQueue, "/Users/christian/walk.glb");
         auto t2 = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>( t2 - t1 ).count();
         std::cout << "Loading model took " << duration << "ms" << std::endl;
@@ -76,7 +76,7 @@ class App : public Application {
         uniformBufferObject.projection[1][1] *= -1;
         uniformBufferObject.lightPosition = glm::vec3(0.0F, 0.0F, 5.0F);
 
-        auto setMaterial = [](pvk::gltf::Object &object, pvk::gltf::Node &node, vk::DeviceMemory &memory) {
+        auto setMaterial = [](pvk::gltf::Object &object, pvk::gltf::Node &node, vk::UniqueDeviceMemory &memory) {
             struct {
                 glm::vec4 baseColorFactor = glm::vec4(1.0f, 0.0f, 0.0f, 0.0f);
                 float metallicFactor = 0.0;
@@ -101,7 +101,7 @@ class App : public Application {
 
         const auto setUniformBufferObject = [](pvk::gltf::Object &object,
                                                pvk::gltf::Node &node,
-                                               vk::DeviceMemory &memory) {
+                                               vk::UniqueDeviceMemory &memory) {
             node.bufferObject.model = glm::scale(glm::mat4(1.0f), glm::vec3(0.1F));
             node.bufferObject.localMatrix = node.getGlobalMatrix();
 

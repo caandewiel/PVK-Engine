@@ -46,13 +46,13 @@ namespace pvk::gltf {
         std::vector<vk::UniqueDescriptorSet> descriptorSets{};
 
         std::map<uint32_t, std::vector<vk::DescriptorBufferInfo>> descriptorBuffersInfo{};
-        std::map<uint32_t, std::vector<vk::Buffer>> uniformBuffers{};
-        std::map<uint32_t, std::vector<vk::DeviceMemory>> uniformBuffersMemory{};
+        std::map<uint32_t, std::vector<vk::UniqueBuffer>> uniformBuffers{};
+        std::map<uint32_t, std::vector<vk::UniqueDeviceMemory>> uniformBuffersMemory{};
 
-        glm::vec3 translation = glm::vec3(0.0f);
-        glm::vec3 scale = glm::vec3(1.0f);
-        glm::mat4 rotation = glm::mat4(1.0f);
-        glm::mat4 matrix = glm::mat4(1.0f);
+        glm::vec3 translation = glm::vec3(0.0F);
+        glm::vec3 scale = glm::vec3(1.0F);
+        glm::mat4 rotation = glm::mat4(1.0F);
+        glm::mat4 matrix = glm::mat4(1.0F);
     };
 }
 
