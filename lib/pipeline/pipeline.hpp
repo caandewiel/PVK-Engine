@@ -35,9 +35,9 @@ namespace pvk {
 
         void setUniformBufferSize(uint8_t descriptorSetIndex, uint8_t descriptorSetBindingIndex, size_t size);
 
-        void registerObject(std::shared_ptr<Object> object);
+        void registerObject(const std::shared_ptr<Object>& object);
 
-        void registerTexture(Texture *texture, uint32_t binding);
+        void registerTexture(const std::shared_ptr<Texture> &texture, uint32_t binding);
 
         void prepare();
 
@@ -62,12 +62,13 @@ namespace pvk {
         vk::UniquePipelineLayout pipelineLayout;
 
         std::vector<std::shared_ptr<Object>> objects{};
-        std::map<uint32_t, Texture *> textures;
+        std::map<uint32_t, std::shared_ptr<Texture>> textures;
 
-        vk::UniqueDescriptorPool descriptorPool;
         std::vector<vk::UniqueDescriptorSetLayout> descriptorSetLayouts;
         std::vector<std::vector<vk::DescriptorSetLayoutBinding>> descriptorSetLayoutBindingsLookup;
         std::unordered_map<uint8_t, std::unordered_map<uint8_t, size_t>> descriptorSetLayoutBindingSizesLookup;
+    public:
+        vk::UniqueDescriptorPool descriptorPool;
     public:
         void setDescriptorSetLayouts(std::vector<vk::UniqueDescriptorSetLayout> &&newDescriptorSetLayouts);
 

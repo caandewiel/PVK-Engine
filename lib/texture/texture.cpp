@@ -8,8 +8,6 @@
 #include "texture.hpp"
 
 namespace pvk {
-    Texture::Texture() = default;
-
     auto Texture::getDescriptorImageInfo() -> vk::DescriptorImageInfo * {
         this->descriptorImageInfo = {
                 this->sampler.get(),

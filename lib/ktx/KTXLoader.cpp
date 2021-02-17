@@ -8,13 +8,13 @@
 #include "KTXLoader.hpp"
 
 namespace pvk::ktx {
-    pvk::Texture load(const vk::Queue &graphicsQueue,
-                      const std::string &filePath) {
+    auto load(const vk::Queue &graphicsQueue,
+              const std::string &filePath) -> std::unique_ptr<pvk::Texture> {
         gli::texture_cube textureCube(gli::load(filePath.c_str()));
 
-        pvk::Texture texture{};
+        auto texture = std::make_unique<Texture>();
 
-        pvk::buffer::texture::create(graphicsQueue, textureCube, texture);
+        pvk::buffer::texture::create(graphicsQueue, textureCube, *texture);
 
         return texture;
     }

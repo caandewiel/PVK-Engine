@@ -274,6 +274,8 @@ protected:
 
         tearDown();
 
+        pvk::Context::tearDown();
+
         glfwDestroyWindow(window);
 
         glfwTerminate();

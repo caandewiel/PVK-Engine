@@ -10,11 +10,11 @@
 namespace pvk {
     Pipeline::~Pipeline() {}
     
-    void Pipeline::registerObject(std::shared_ptr<Object> object) {
-        this->objects.emplace_back(std::move(object));
+    void Pipeline::registerObject(const std::shared_ptr<Object>& object) {
+        this->objects.emplace_back(object);
     }
     
-    void Pipeline::registerTexture(Texture *texture, uint32_t binding) {
+    void Pipeline::registerTexture(const std::shared_ptr<Texture> &texture, uint32_t binding) {
         this->textures[binding] = texture;
     }
 

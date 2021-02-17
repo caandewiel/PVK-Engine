@@ -17,8 +17,8 @@
 #include "../texture/texture.hpp"
 
 namespace pvk::ktx {
-        pvk::Texture load(const vk::Queue &graphicsQueue,
-                                   const std::string &filePath);
-    }
+    auto load(const vk::Queue &graphicsQueue,
+              const std::string &filePath) -> std::unique_ptr<pvk::Texture>;
+}
 
 #endif /* KTXLoader_hpp */

@@ -1,4 +1,3 @@
-#include <cstdio>
 #include <chrono>
 
 #include "lib/application/application.hpp"
@@ -10,7 +9,7 @@ class App : public Application {
     std::shared_ptr<pvk::Object> _fox;
     std::shared_ptr<pvk::Object> _skyboxObject;
 
-    pvk::Texture _skyboxTexture;
+    std::shared_ptr<pvk::Texture> _skyboxTexture;
 
     struct {
         glm::mat4 view;
@@ -49,7 +48,7 @@ class App : public Application {
 
         // Load model
         auto t1 = std::chrono::high_resolution_clock::now();
-        _fox = pvk::Object::createFromGLTF(graphicsQueue, "/Users/christian/walk.glb");
+        _fox = pvk::Object::createFromGLTF(graphicsQueue, "/Users/christian/walk2.glb");
         auto t2 = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>( t2 - t1 ).count();
         std::cout << "Loading model took " << duration << "ms" << std::endl;
@@ -62,7 +61,7 @@ class App : public Application {
         // Load skybox
         _skyboxObject = pvk::Object::createFromGLTF(graphicsQueue, "/Users/christian/Downloads/data/models/cube.gltf");
         _skyboxTexture = pvk::ktx::load(graphicsQueue, "/Users/christian/Downloads/data/textures/cubemap_space.ktx");
-        _skyboxPipeline->registerTexture(&_skyboxTexture, 2);
+        _skyboxPipeline->registerTexture(_skyboxTexture, 2);
         _skyboxPipeline->registerObject(_skyboxObject);
 
         // Finalize pipeline and prepare for rendering
@@ -102,7 +101,7 @@ class App : public Application {
         const auto setUniformBufferObject = [](pvk::gltf::Object &object,
                                                pvk::gltf::Node &node,
                                                vk::UniqueDeviceMemory &memory) {
-            node.bufferObject.model = glm::scale(glm::mat4(1.0f), glm::vec3(0.1F));
+            node.bufferObject.model = glm::scale(glm::mat4(1.0f), glm::vec3(1.0F));
             node.bufferObject.localMatrix = node.getGlobalMatrix();
 
             auto &inverseBindMatrices = object.inverseBindMatrices;
@@ -140,7 +139,13 @@ class App : public Application {
         }
     }
 
-    void tearDown() override {}
+    void tearDown() override {
+        _skyboxTexture.reset();
+        _pipeline.reset();
+        _skyboxPipeline.reset();
+        _fox.reset();
+        _skyboxObject.reset();
+    }
 };
 
 auto main() -> int {

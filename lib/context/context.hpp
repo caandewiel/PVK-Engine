@@ -15,8 +15,16 @@
 namespace pvk {
     class Context {
     public:
+        ~Context() = default;
+
         static auto get() {
             return Context::context;
+        }
+
+        static void tearDown() {
+//            Context::commandPool.reset();
+//            Context::pipelineCache.reset();
+//            Context::logicalDevice.reset();
         }
 
         static void setPhysicalDevice(vk::PhysicalDevice &&_physicalDevice) {

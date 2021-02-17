@@ -372,7 +372,7 @@ namespace pvk {
         auto materials = std::vector<gltf::Material *>(model->materials.size());
 
         auto loadTexture = [&](const int8_t textureIndex) {
-            auto _texture = new Texture();
+            auto _texture = std::make_unique<Texture>();
 
             if (textureIndex > -1) {
                 auto &baseColorTexture = model->textures[textureIndex];
