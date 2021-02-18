@@ -17,7 +17,7 @@ namespace pvk::buffer {
         vk::PhysicalDeviceMemoryProperties memProperties = Context::getPhysicalDevice().getMemoryProperties();
 
         for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
-            if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+            if (((typeFilter & (1 << i)) != 0U) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
                 return i;
             }
         }
@@ -33,28 +33,20 @@ namespace pvk::buffer {
                 const vk::MemoryPropertyFlags properties,
                 vk::UniqueBuffer &buffer,
                 vk::UniqueDeviceMemory &bufferMemory) {
-        vk::BufferCreateInfo bufferInfo = {};
-        bufferInfo.size = size;
-        bufferInfo.usage = usage;
-        bufferInfo.sharingMode = vk::SharingMode::eExclusive;
+        vk::BufferCreateInfo bufferInfo = {{}, size, usage, vk::SharingMode::eExclusive};
 
         try {
             buffer = Context::getLogicalDevice().createBufferUnique(bufferInfo);
-        }
-        catch (vk::SystemError &error) {
+        } catch (vk::SystemError &error) {
             throw std::runtime_error("Failed to create buffer.");
         }
 
         vk::MemoryRequirements memRequirements = Context::getLogicalDevice().getBufferMemoryRequirements(buffer.get());
-
-        vk::MemoryAllocateInfo allocInfo = {};
-        allocInfo.allocationSize = memRequirements.size;
-        allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
+        vk::MemoryAllocateInfo allocInfo = {memRequirements.size, findMemoryType(memRequirements.memoryTypeBits, properties)};
 
         try {
             bufferMemory = Context::getLogicalDevice().allocateMemoryUnique(allocInfo);
-        }
-        catch (vk::SystemError &error) {
+        } catch (vk::SystemError &error) {
             throw std::runtime_error("Failed to allocate buffer memory.");
         }
 
@@ -186,20 +178,22 @@ namespace pvk::buffer {
     }
 
     namespace texture {
+        constexpr uint8_t NUMBER_OF_PIXEL_PER_COLOR = 4;
+
         void createEmpty(const vk::Queue &graphicsQueue, pvk::Texture &texture) {
             vk::UniqueBuffer stagingBuffer;
             vk::UniqueDeviceMemory stagingBufferMemory;
 
-            unsigned char pixels[] = {0, 0, 0, 0};
+            std::array<unsigned char, NUMBER_OF_PIXEL_PER_COLOR> pixels = {0, 0, 0, 0};
 
-            pvk::buffer::create(sizeof(pixels),
+            pvk::buffer::create(pixels.size(),
                                 vk::BufferUsageFlagBits::eTransferSrc,
                                 vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
                                 stagingBuffer,
                                 stagingBufferMemory);
 
-            void *data = Context::getLogicalDevice().mapMemory(stagingBufferMemory.get(), 0, sizeof(pixels));
-            memcpy(data, &pixels, sizeof(pixels));
+            void *data = Context::getLogicalDevice().mapMemory(stagingBufferMemory.get(), 0, pixels.size());
+            memcpy(data, &pixels, pixels.size());
 
             vk::BufferImageCopy bufferCopyRegion;
             bufferCopyRegion.imageSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
@@ -242,8 +236,8 @@ namespace pvk::buffer {
             samplerCreateInfo.addressModeW = vk::SamplerAddressMode::eClampToEdge;
             // Max level-of-detail should match mip level count
             samplerCreateInfo.maxLod = static_cast<float>(1);
-            // Only enable anisotropic filtering if enabled on the devicec
-            samplerCreateInfo.maxAnisotropy = 1.0f;
+            // Only enable anisotropic filtering if enabled on the device
+            samplerCreateInfo.maxAnisotropy = 1.0F;
             samplerCreateInfo.anisotropyEnable = VK_FALSE;
             samplerCreateInfo.borderColor = vk::BorderColor::eFloatOpaqueWhite;
             texture.sampler = Context::getLogicalDevice().createSamplerUnique(samplerCreateInfo);

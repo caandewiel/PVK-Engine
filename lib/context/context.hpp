@@ -39,7 +39,7 @@ namespace pvk {
 
         static auto getInstance() -> vk::Instance;
 
-        static const std::vector<vk::Image> &getSwapchainImages();
+        static auto getSwapchainImages() -> const std::vector<vk::Image> &;
 
     private:
         Context() = default;

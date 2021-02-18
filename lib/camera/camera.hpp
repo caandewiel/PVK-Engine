@@ -27,9 +27,9 @@ namespace pvk {
         Camera(glm::vec3 position, glm::vec3 up, float yaw = YAW, float pitch = PITCH);
         void update(CameraMovement direction, float deltaTime);
         void update(float xOffset, float yOffset, float deltaTime);
-        glm::mat4 getViewMatrix();
+        glm::mat4 getViewMatrix() const;
         
-        glm::vec3 position, front, up, right, worldUp;
+        glm::vec3 position, front, up{}, right{}, worldUp;
         float yaw, pitch;
         float movementSpeed, sensitivity, zoom;
         

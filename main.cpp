@@ -51,7 +51,7 @@ public:
 
         // Load model
         auto t1 = std::chrono::high_resolution_clock::now();
-        _fox = pvk::Object::createFromGLTF(graphicsQueue, "/Users/christian/walk.glb");
+        _fox = pvk::Object::createFromGLTF(graphicsQueue, "/Users/christian/walk2.glb");
         auto t2 = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>( t2 - t1 ).count();
         std::cout << "Loading model took " << duration << "ms" << std::endl;

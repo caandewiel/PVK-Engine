@@ -87,11 +87,11 @@ namespace pvk::gltf {
                             }
                         }
 
-                        auto translationMatrix = glm::translate(glm::mat4(1.0f), channel.node->translation);
+                        auto translationMatrix = glm::translate(glm::mat4(1.0F), channel.node->translation);
                         auto rotationMatrix = glm::mat4(channel.node->rotation);
-                        auto scaleMatrix = glm::scale(glm::mat4(1.0f), channel.node->scale);
+                        auto scaleMatrix = glm::scale(glm::mat4(1.0F), channel.node->scale);
 
-                        channel.node->matrix = translationMatrix * rotationMatrix * scaleMatrix * glm::mat4(1.0f);
+                        channel.node->matrix = translationMatrix * rotationMatrix * scaleMatrix * glm::mat4(1.0F);
                     }
                 }
             }

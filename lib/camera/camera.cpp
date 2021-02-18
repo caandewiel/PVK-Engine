@@ -8,51 +8,54 @@
 #include "camera.hpp"
 
 namespace pvk {
-    Camera::Camera(glm::vec3 position, glm::vec3 up, float yaw, float pitch) : front(glm::vec3(0.0f, 0.0f, -1.0f)), movementSpeed(SPEED), sensitivity(SENSITIVITY), zoom(ZOOM) {
-        this->position = position;
-        this->worldUp = up;
-        this->yaw = yaw;
-        this->pitch = pitch;
-        
+    constexpr float CAMERA_PITCH_LIMIT = 89.0F;
+
+    Camera::Camera(glm::vec3 position, glm::vec3 up, float yaw, float pitch) : position(position), front(glm::vec3(0.0F, 0.0F, -1.0F)),
+                                                                               worldUp(up), yaw(yaw), pitch(pitch), movementSpeed(SPEED),
+                                                                               sensitivity(SENSITIVITY), zoom(ZOOM) {
         this->calculateCameraVectors();
     };
-    
+
     void Camera::update(CameraMovement direction, float deltaTime) {
         float velocity = this->movementSpeed * deltaTime;
-        
-        if (direction == FORWARD)
+
+        if (direction == FORWARD) {
             this->position += this->front * velocity;
-        if (direction == BACKWARD)
+        }
+        if (direction == BACKWARD) {
             this->position -= this->front * velocity;
-        if (direction == LEFT)
+        }
+        if (direction == LEFT) {
             this->position -= this->right * velocity;
-        if (direction == RIGHT)
+        }
+        if (direction == RIGHT) {
             this->position += this->right * velocity;
+        }
     }
-    
+
     void Camera::update(float xOffset, float yOffset, float deltaTime) {
         xOffset *= this->sensitivity;
         yOffset *= this->sensitivity;
-        
+
         this->yaw += xOffset;
         this->pitch += yOffset;
-        
-//        this->pitch = std::fmaxf(-89.0f, std::fminf(this->pitch, 89.0f));
-        
+
+        this->pitch = std::fmaxf(-CAMERA_PITCH_LIMIT, std::fminf(this->pitch, CAMERA_PITCH_LIMIT));
+
         this->calculateCameraVectors();
     }
-    
-    glm::mat4 Camera::getViewMatrix() {
+
+    auto Camera::getViewMatrix() const -> glm::mat4 {
         return glm::lookAt(this->position, this->position + this->front, this->up);
     }
-    
+
     void Camera::calculateCameraVectors() {
-        glm::vec3 _front {
-            cos(glm::radians(yaw)) * cos(glm::radians(pitch)),
-            sin(glm::radians(pitch)),
-            sin(glm::radians(yaw)) * cos(glm::radians(pitch)),
+        glm::vec3 _front{
+                cos(glm::radians(yaw)) * cos(glm::radians(pitch)),
+                sin(glm::radians(pitch)),
+                sin(glm::radians(yaw)) * cos(glm::radians(pitch)),
         };
-        
+
         this->front = glm::normalize(_front);
         this->right = glm::normalize(glm::cross(this->front, this->worldUp));
         this->up = glm::normalize(glm::cross(this->right, this->front));
