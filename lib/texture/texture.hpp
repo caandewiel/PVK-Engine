@@ -8,8 +8,7 @@
 #ifndef texture_hpp
 #define texture_hpp
 
-#include <stdio.h>
-#include <gli.hpp>
+#include <cstdio>
 #include <vulkan/vulkan.hpp>
 
 namespace pvk {

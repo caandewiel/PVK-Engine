@@ -10,7 +10,6 @@
 
 #include <cstdio>
 #include <string>
-#include <gli.hpp>
 #include <vulkan/vulkan.hpp>
 
 #include "../buffer/buffer.hpp"

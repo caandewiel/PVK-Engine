@@ -68,30 +68,15 @@ namespace pvk::buffer {
               vk::UniqueBuffer &srcBuffer,
               vk::UniqueBuffer &dstBuffer,
               vk::DeviceSize size) {
-        vk::CommandBufferAllocateInfo allocInfo = {};
-        allocInfo.level = vk::CommandBufferLevel::ePrimary;
-        allocInfo.commandPool = Context::getCommandPool();
-        allocInfo.commandBufferCount = 1;
+        vk::CommandBufferAllocateInfo allocInfo = {Context::getCommandPool(), vk::CommandBufferLevel::ePrimary, 1};
+        vk::BufferCopy copyRegion = {0, 0, size};
 
         auto commandBuffer = std::move(Context::getLogicalDevice().allocateCommandBuffersUnique(allocInfo)[0]);
-
-        vk::CommandBufferBeginInfo beginInfo = {};
-        beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
-
-        commandBuffer.get().begin(beginInfo);
-
-        vk::BufferCopy copyRegion = {};
-        copyRegion.srcOffset = 0; // Optional
-        copyRegion.dstOffset = 0; // Optional
-        copyRegion.size = size;
+        commandBuffer.get().begin({vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
         commandBuffer.get().copyBuffer(srcBuffer.get(), dstBuffer.get(), copyRegion);
-
         commandBuffer.get().end();
 
-        vk::SubmitInfo submitInfo = {};
-        submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &commandBuffer.get();
-
+        vk::SubmitInfo submitInfo = {{}, {}, {}, 1, &commandBuffer.get()};
         graphicsQueue.submit(submitInfo, nullptr);
         graphicsQueue.waitIdle();
     }
@@ -113,11 +98,38 @@ namespace pvk::buffer {
 
 
     void update(const vk::UniqueDeviceMemory &bufferMemory, size_t bufferSize, void *data) {
-        void *dataMapped;
+        void *dataMapped = nullptr;
         vkMapMemory(Context::getLogicalDevice(), bufferMemory.get(), 0, bufferSize, 0, &dataMapped);
         memcpy(dataMapped, data, bufferSize);
         vkUnmapMemory(Context::getLogicalDevice(), bufferMemory.get());
     }
+
+//    template<typename T, vk::BufferUsageFlagBits F>
+//    auto create(vk::Queue &graphicsQueue,
+//                vk::UniqueBuffer &buffer,
+//                vk::UniqueDeviceMemory &bufferMemory,
+//                std::vector<T> &allItem
+//    ) -> void {
+//        vk::DeviceSize bufferSize = sizeof(allItem.front()) * allItem.size();
+//
+//        vk::UniqueBuffer stagingBuffer;
+//        vk::UniqueDeviceMemory stagingBufferMemory;
+//        pvk::buffer::create(bufferSize,
+//                            vk::BufferUsageFlagBits::eTransferSrc,
+//                            vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
+//                            stagingBuffer,
+//                            stagingBufferMemory);
+//        void *data = Context::getLogicalDevice().mapMemory(stagingBufferMemory.get(), 0, bufferSize);
+//        memcpy(data, allItem.data(), (size_t) bufferSize);
+//
+//        pvk::buffer::create(bufferSize,
+//                            F,
+//                            vk::MemoryPropertyFlagBits::eDeviceLocal,
+//                            buffer,
+//                            bufferMemory);
+//
+//        pvk::buffer::copy(graphicsQueue, stagingBuffer, buffer, bufferSize);
+//    }
 
     namespace vertex {
         void create(vk::Queue &graphicsQueue,

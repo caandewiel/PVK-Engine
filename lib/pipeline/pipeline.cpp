@@ -8,7 +8,15 @@
 #include "pipeline.hpp"
 
 namespace pvk {
-    Pipeline::~Pipeline() {}
+    Pipeline::~Pipeline() {
+        for (auto &object : this->objects) {
+            object.reset();
+        }
+
+        for (auto &texture : this->textures) {
+            texture.second.reset();
+        }
+    }
     
     void Pipeline::registerObject(const std::shared_ptr<Object>& object) {
         this->objects.emplace_back(object);

@@ -58,6 +58,10 @@ namespace pvk {
         object->animations = GLTFLoader::loadAnimations(model, object->nodeLookup);
         GLTFLoader::loadMaterials(model, graphicsQueue, *object);
 
+//        buffer::create<Vertex, vk::BufferUsageFlagBits::eVertexBuffer>(graphicsQueue,
+//                                                                       object->vertexBuffer,
+//                                                                       object->vertexBufferMemory,
+//                                                                       object->vertices);
         buffer::vertex::create(graphicsQueue,
                                object->vertexBuffer,
                                object->vertexBufferMemory,
@@ -385,7 +389,7 @@ namespace pvk {
             return _texture;
         };
 
-        for (auto i = 0; i < model->materials.size(); i++) {
+        for (auto i = 0; i < static_cast<int>(model->materials.size()); i++) {
             auto &material = model->materials[i];
             auto _material = new gltf::Material();
 
@@ -607,8 +611,6 @@ namespace pvk {
         uint32_t currentIndexOffset = 0;
 
         primitiveLookup.reserve(model->meshes.size());
-
-        auto t1 = std::chrono::high_resolution_clock::now();
 
         for (auto &mesh : model->meshes) {
             std::vector<std::unique_ptr<gltf::Primitive>> meshPrimitives;

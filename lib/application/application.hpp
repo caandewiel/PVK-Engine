@@ -78,6 +78,10 @@ struct SwapChainSupportDetails {
 
 class Application {
 public:
+    Application() = default;
+
+    ~Application() = default;
+
     void run() {
         initWindow();
         initVulkan();
@@ -86,11 +90,16 @@ public:
     }
 
 protected:
-    GLFWwindow *window;
+    GLFWwindow *window{};
     std::unique_ptr<pvk::Camera> camera;
 
-    vk::UniqueDebugUtilsMessengerEXT debugMessenger;
-    vk::UniqueInstance instance;
+//    vk::UniqueInstance instance;
+//    vk::UniqueCommandPool commandPool;
+//    vk::UniqueDevice logicalDevice;
+//    vk::PhysicalDevice physicalDevice;
+//    vk::UniquePipelineCache pipelineCache;
+
+    vk::DebugUtilsMessengerEXT debugMessenger;
     vk::UniqueSurfaceKHR surface;
 
     vk::Queue graphicsQueue;
@@ -98,8 +107,8 @@ protected:
 
     vk::UniqueSwapchainKHR swapChain;
     std::vector<vk::Image> swapChainImages;
-    vk::Format swapChainImageFormat;
-    vk::Extent2D swapChainExtent;
+    vk::Format swapChainImageFormat{};
+    vk::Extent2D swapChainExtent{};
     std::vector<vk::UniqueImageView> swapChainImageViews;
     std::vector<vk::UniqueFramebuffer> swapChainFramebuffers;
 
@@ -125,10 +134,10 @@ protected:
 
     bool initializeMouse = true;
     bool isMouseActive = false;
-    double lastMouseX;
-    double lastMouseY;
-    double xOffset;
-    double yOffset;
+    double lastMouseX{};
+    double lastMouseY{};
+    double xOffset{};
+    double yOffset{};
 
     bool framebufferResized = false;
 
@@ -220,7 +229,6 @@ protected:
     }
 
     void initVulkan() {
-        createContext();
         createInstance();
         setupDebugCallback();
         createSurface();
@@ -274,7 +282,10 @@ protected:
 
         tearDown();
 
-        pvk::Context::tearDown();
+//        pipelineCache = std::move(pvk::Context::pipelineCache);
+//        commandPool = std::move(pvk::Context::commandPool);
+//        logicalDevice = std::move(pvk::Context::logicalDevice);
+//        instance = std::move(pvk::Context::instance);
 
         glfwDestroyWindow(window);
 
@@ -297,10 +308,6 @@ protected:
         createRenderPass();
         createFramebuffers();
         createCommandBuffers();
-    }
-
-    void createContext() {
-        pvk::Context::get();
     }
 
     void createInstance() {
@@ -334,7 +341,7 @@ protected:
         }
 
         try {
-            instance = vk::createInstanceUnique(createInfo, nullptr);
+            pvk::Context::setInstance(vk::createInstanceUnique(createInfo, nullptr));
         } catch (vk::SystemError &error) {
             throw std::runtime_error("Failed to create instance.");
         }
@@ -354,39 +361,39 @@ protected:
     void setupDebugCallback() {
         if (!enableValidationLayers) return;
 
-        debugMessenger = instance->createDebugUtilsMessengerEXTUnique(
+        debugMessenger = pvk::Context::getInstance().createDebugUtilsMessengerEXT(
                 getDebugUtilsMessengerCreateInfo()
         );
     }
 
     void createSurface() {
         VkSurfaceKHR rawSurface{};
-        if (glfwCreateWindowSurface(*instance, window, nullptr, &rawSurface) != VK_SUCCESS) {
+        if (glfwCreateWindowSurface(pvk::Context::getInstance(), window, nullptr, &rawSurface) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create window surface.");
         }
 
-        vk::ObjectDestroy<vk::Instance, vk::DispatchLoaderStatic> surfaceDeleter{instance.get()};
+        vk::ObjectDestroy<vk::Instance, vk::DispatchLoaderStatic> surfaceDeleter{pvk::Context::getInstance()};
         surface = vk::UniqueSurfaceKHR(rawSurface, surfaceDeleter);
     }
 
     void pickPhysicalDevice() {
         pvk::Context::setPhysicalDevice(
-                std::move(pvk::device::physical::initialize(instance.get(), surface.get(), deviceExtensions)));
+                pvk::device::physical::initialize(pvk::Context::getInstance(), surface.get(), deviceExtensions));
     }
 
     void createLogicalDevice() {
         pvk::QueueFamilyIndices indices = pvk::device::physical::findQueueFamilies(pvk::Context::getPhysicalDevice(),
                                                                                    surface.get());
 
-        pvk::Context::setLogicalDevice(std::move(
+        pvk::Context::setLogicalDevice(
                 pvk::device::logical::create(pvk::Context::getPhysicalDevice(), indices, deviceExtensions,
-                                             validationLayers, enableValidationLayers)));
+                                             validationLayers, enableValidationLayers));
 
         graphicsQueue = pvk::Context::getLogicalDevice().getQueue(indices.graphicsFamily.value(), 0);
         presentQueue = pvk::Context::getLogicalDevice().getQueue(indices.presentFamily.value(), 0);
 
         pvk::Context::setPipelineCache(
-                std::move(pvk::Context::getLogicalDevice().createPipelineCacheUnique(vk::PipelineCacheCreateInfo())));
+                pvk::Context::getLogicalDevice().createPipelineCacheUnique(vk::PipelineCacheCreateInfo()));
     }
 
     void createSwapChain() {
@@ -439,7 +446,7 @@ protected:
         }
 
         swapChainImages = pvk::Context::getLogicalDevice().getSwapchainImagesKHR(swapChain.get());
-        pvk::Context::setSwapchainImages(&swapChainImages);
+        pvk::Context::setSwapchainImages(swapChainImages);
 
         swapChainImageFormat = surfaceFormat.format;
         swapChainExtent = extent;
@@ -568,7 +575,8 @@ protected:
                                                                    static_cast<uint32_t> (attachments.size()),
                                                                    attachments.data(),
                                                                    swapChainExtent.width, swapChainExtent.height, 1};
-                swapChainFramebuffers[i] = pvk::Context::getLogicalDevice().createFramebufferUnique(frameBufferCreateInfo);
+                swapChainFramebuffers[i] = pvk::Context::getLogicalDevice().createFramebufferUnique(
+                        frameBufferCreateInfo);
             } catch (vk::SystemError &err) {
                 throw std::runtime_error("failed to create framebuffer!");
             }
@@ -679,7 +687,8 @@ protected:
             for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
                 imageAvailableSemaphores[i] = pvk::Context::getLogicalDevice().createSemaphoreUnique({});
                 renderFinishedSemaphores[i] = pvk::Context::getLogicalDevice().createSemaphoreUnique({});
-                inFlightFences[i] = pvk::Context::getLogicalDevice().createFenceUnique({vk::FenceCreateFlagBits::eSignaled});
+                inFlightFences[i] = pvk::Context::getLogicalDevice().createFenceUnique(
+                        {vk::FenceCreateFlagBits::eSignaled});
             }
         } catch (vk::SystemError &error) {
             throw std::runtime_error("failed to create synchronization objects for a frame!");
@@ -687,8 +696,15 @@ protected:
     }
 
     void drawFrame() {
-        pvk::Context::getLogicalDevice().waitForFences(1, &inFlightFences[currentFrame].get(), VK_TRUE,
-                                                       std::numeric_limits<uint64_t>::max());
+        {
+            auto result = pvk::Context::getLogicalDevice().waitForFences(1, &inFlightFences[currentFrame].get(),
+                                                                         VK_TRUE,
+                                                                         std::numeric_limits<uint64_t>::max());
+
+            if (result != vk::Result::eSuccess) {
+                throw std::runtime_error("Could not wait for fences");
+            }
+        }
 
         uint32_t imageIndex = 0;
         try {
@@ -709,16 +725,20 @@ protected:
 
         vk::SubmitInfo submitInfo = {};
 
-        std::array<vk::Semaphore, 1> waitSemaphores {imageAvailableSemaphores[currentFrame].get()};
-        std::array<vk::PipelineStageFlags, 1> waitStages {vk::PipelineStageFlagBits::eColorAttachmentOutput};
+        std::array<vk::Semaphore, 1> waitSemaphores{imageAvailableSemaphores[currentFrame].get()};
+        std::array<vk::PipelineStageFlags, 1> waitStages{vk::PipelineStageFlagBits::eColorAttachmentOutput};
         submitInfo.setWaitSemaphores(waitSemaphores);
         submitInfo.setWaitDstStageMask(waitStages);
         submitInfo.setCommandBuffers(commandBuffers[imageIndex].get());
 
-        std::array<vk::Semaphore, 1> signalSemaphores {renderFinishedSemaphores[currentFrame].get()};
+        std::array<vk::Semaphore, 1> signalSemaphores{renderFinishedSemaphores[currentFrame].get()};
         submitInfo.setSignalSemaphores(signalSemaphores);
 
-        pvk::Context::getLogicalDevice().resetFences(1, &inFlightFences[currentFrame].get());
+        auto result = pvk::Context::getLogicalDevice().resetFences(1, &inFlightFences[currentFrame].get());
+
+        if (result != vk::Result::eSuccess) {
+            throw std::runtime_error("Could not reset fences");
+        }
 
         try {
             graphicsQueue.submit(submitInfo, inFlightFences[currentFrame].get());

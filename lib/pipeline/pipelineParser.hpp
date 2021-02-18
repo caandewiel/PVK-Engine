@@ -112,7 +112,7 @@ namespace pvk {
             vk::DescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo{};
             descriptorSetLayoutCreateInfo.setBindings(descriptorSetLayoutBindings);
 
-            descriptorSetLayouts.emplace_back(std::move(Context::getLogicalDevice().createDescriptorSetLayoutUnique(descriptorSetLayoutCreateInfo)));
+            descriptorSetLayouts.emplace_back(Context::getLogicalDevice().createDescriptorSetLayoutUnique(descriptorSetLayoutCreateInfo));
         }
 
         // Create the pipeline layout
@@ -180,7 +180,7 @@ namespace pvk {
 
         // Now create the actual pipeline
         auto pipeline = std::make_unique<Pipeline>(
-                std::move(pipelineBuilder.create(Context::getPipelineCache())),
+                pipelineBuilder.create(Context::getPipelineCache()),
                 std::move(pipelineLayout)
         );
 

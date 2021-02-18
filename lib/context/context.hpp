@@ -15,62 +15,33 @@
 namespace pvk {
     class Context {
     public:
-        ~Context() = default;
+        static void tearDown();
 
-        static auto get() {
-            return Context::context;
-        }
+        static void setPhysicalDevice(vk::PhysicalDevice &&_physicalDevice);
 
-        static void tearDown() {
-//            Context::commandPool.reset();
-//            Context::pipelineCache.reset();
-//            Context::logicalDevice.reset();
-        }
+        static void setLogicalDevice(vk::UniqueDevice &&_logicalDevice);
 
-        static void setPhysicalDevice(vk::PhysicalDevice &&_physicalDevice) {
-            Context::physicalDevice = _physicalDevice;
-        }
+        static void setCommandPool(vk::UniqueCommandPool &&_commandPool);
 
-        static void setLogicalDevice(vk::UniqueDevice &&_logicalDevice) {
-            Context::logicalDevice = std::move(_logicalDevice);
-        }
+        static void setPipelineCache(vk::UniquePipelineCache &&_pipelineCache);
 
-        static void setCommandPool(vk::UniqueCommandPool &&_commandPool) {
-            Context::commandPool = std::move(_commandPool);
-        }
+        static void setInstance(vk::UniqueInstance &&_instance);
 
-        static void setPipelineCache(vk::UniquePipelineCache &&_pipelineCache) {
-            Context::pipelineCache = std::move(_pipelineCache);
-        }
-
-        static void setSwapchainImages(const std::vector<vk::Image>* swapchainImages);
+        static void setSwapchainImages(std::vector<vk::Image> _swapchainImages);
         
-        static auto getPhysicalDevice() -> vk::PhysicalDevice {
-            return Context::physicalDevice;
-        }
+        static auto getPhysicalDevice() -> vk::PhysicalDevice;
 
-        static auto getLogicalDevice() -> vk::Device {
-            return Context::logicalDevice.get();
-        }
+        static auto getLogicalDevice() -> vk::Device;
 
-        static auto getCommandPool() -> vk::CommandPool {
-            return Context::commandPool.get();
-        }
+        static auto getCommandPool() -> vk::CommandPool;
 
-        static auto getPipelineCache() -> vk::PipelineCache {
-            return Context::pipelineCache.get();
-        }
+        static auto getPipelineCache() -> vk::PipelineCache;
 
-        static const std::vector<vk::Image> getSwapchainImages();
+        static auto getInstance() -> vk::Instance;
+
+        static const std::vector<vk::Image> &getSwapchainImages();
 
     private:
-        static const Context context;
-        static vk::PhysicalDevice physicalDevice;
-        static vk::UniqueDevice logicalDevice;
-        static vk::UniqueCommandPool commandPool;
-        static vk::UniquePipelineCache pipelineCache;
-        static const std::vector<vk::Image> *swapchainImages;
-
         Context() = default;
     };
 }

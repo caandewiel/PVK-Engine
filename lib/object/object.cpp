@@ -43,10 +43,6 @@ namespace pvk {
         }
     }
 
-    const std::vector<std::shared_ptr<gltf::Node>> &Object::getNodes() const {
-        return this->gltfObject->nodes;
-    }
-
     auto Object::getAnimation(uint32_t animationIndex) const -> const gltf::Animation & {
         return *this->gltfObject->animations[animationIndex];
     }

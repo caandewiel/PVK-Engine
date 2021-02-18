@@ -13,9 +13,8 @@
 #include <cstdio>
 #include <utility>
 #include <vulkan/vulkan.hpp>
-#include <gli.hpp>
-
-#include "tiny_gltf.h"
+#include "proxy/gli.h"
+#include "proxy/tiny_gltf.h"
 
 #include "../mesh/vertex.hpp"
 #include "../image/image.hpp"
@@ -53,7 +52,14 @@ namespace pvk {
         void update(const vk::UniqueDeviceMemory &bufferMemory,
                     size_t bufferSize,
                     void* data);
-        
+
+//        template<typename T, vk::BufferUsageFlagBits F>
+//        auto create(vk::Queue &graphicsQueue,
+//                    vk::UniqueBuffer &buffer,
+//                    vk::UniqueDeviceMemory &bufferMemory,
+//                    std::vector<T> &allItem
+//        ) -> void;
+
         namespace vertex {
             void create(vk::Queue &graphicsQueue,
                         vk::UniqueBuffer &buffer,

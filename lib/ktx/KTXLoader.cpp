@@ -6,6 +6,7 @@
 //
 
 #include "KTXLoader.hpp"
+#include "proxy/gli.h"
 
 namespace pvk::ktx {
     auto load(const vk::Queue &graphicsQueue,

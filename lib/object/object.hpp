@@ -18,11 +18,9 @@
 namespace pvk {
     class Object {
     public:
-        static std::unique_ptr<Object> createFromGLTF(vk::Queue &graphicsQueue, const std::string &filename);
+        static auto createFromGLTF(vk::Queue &graphicsQueue, const std::string &filename) -> std::unique_ptr<Object>;
 
         ~Object();
-
-        [[nodiscard]] const std::vector<std::shared_ptr<gltf::Node>> & getNodes() const;
 
         [[nodiscard]] auto getAnimation(uint32_t animationIndex) const -> const gltf::Animation &;
 

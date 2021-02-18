@@ -3,6 +3,9 @@
 #include "lib/application/application.hpp"
 
 class App : public Application {
+public:
+    App() = default;
+    ~App() = default;
     std::unique_ptr<pvk::Pipeline> _pipeline;
     std::unique_ptr<pvk::Pipeline> _skyboxPipeline;
 
@@ -29,7 +32,7 @@ class App : public Application {
         glm::vec4 baseColorFactor;
         float metallicFactor;
         float roughnessFactor;
-    } material;
+    } materialStructure;
 
     void initialize() override {
         _pipeline = pvk::createPipelineFromDefinition("/Users/christian/PVK-Engine/definitions/pbr.json",
@@ -41,14 +44,14 @@ class App : public Application {
 
         _pipeline->setUniformBufferSize(0, 0, sizeof(uniformBufferObject));
         _pipeline->setUniformBufferSize(0, 1, sizeof(bufferObject));
-        _pipeline->setUniformBufferSize(0, 2, sizeof(material));
+        _pipeline->setUniformBufferSize(0, 2, sizeof(materialStructure));
 
         _skyboxPipeline->setUniformBufferSize(0, 0, sizeof(uniformBufferObject));
         _skyboxPipeline->setUniformBufferSize(0, 1, sizeof(bufferObject));
 
         // Load model
         auto t1 = std::chrono::high_resolution_clock::now();
-        _fox = pvk::Object::createFromGLTF(graphicsQueue, "/Users/christian/walk2.glb");
+        _fox = pvk::Object::createFromGLTF(graphicsQueue, "/Users/christian/walk.glb");
         auto t2 = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>( t2 - t1 ).count();
         std::cout << "Loading model took " << duration << "ms" << std::endl;
@@ -139,25 +142,20 @@ class App : public Application {
         }
     }
 
-    void tearDown() override {
-        _skyboxTexture.reset();
-        _pipeline.reset();
-        _skyboxPipeline.reset();
-        _fox.reset();
-        _skyboxObject.reset();
-    }
+    void tearDown() override {}
 };
 
 auto main() -> int {
-    App app;
-
     try {
+        App app;
         app.run();
     }
     catch (const std::exception &e) {
         std::cerr << e.what() << std::endl;
         return EXIT_FAILURE;
     }
+
+    pvk::Context::tearDown();
 
     return EXIT_SUCCESS;
 }

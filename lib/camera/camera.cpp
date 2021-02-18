@@ -47,13 +47,13 @@ namespace pvk {
     }
     
     void Camera::calculateCameraVectors() {
-        glm::vec3 front {
+        glm::vec3 _front {
             cos(glm::radians(yaw)) * cos(glm::radians(pitch)),
             sin(glm::radians(pitch)),
             sin(glm::radians(yaw)) * cos(glm::radians(pitch)),
         };
         
-        this->front = glm::normalize(front);
+        this->front = glm::normalize(_front);
         this->right = glm::normalize(glm::cross(this->front, this->worldUp));
         this->up = glm::normalize(glm::cross(this->right, this->front));
     }

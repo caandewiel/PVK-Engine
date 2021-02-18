@@ -2,7 +2,8 @@ project(pvk)
 cmake_minimum_required(VERSION 3.14)
 
 IF(APPLE)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DVK_USE_PLATFORM_MACOS_MVK")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DVK_USE_PLATFORM_MACOS_MVK -fno-omit-frame-pointer -fsanitize=address -Wall -Wextra -Wshadow -Wno-unused-parameter -Werror")
+    set(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -fno-omit-frame-pointer -fsanitize=address")
 ENDIF()
 set(CMAKE_CXX_STANDARD 20)
 
@@ -69,7 +70,7 @@ SET(SOURCES
         lib/shader/shader.cpp
         lib/texture/texture.cpp
         lib/util/util.cpp
-        lib/gltf/GLTFSkin.cpp)
+        lib/gltf/GLTFSkin.cpp external/proxy/gli.h external/proxy/tiny_gltf.h)
 
 add_executable(${PROJECT_NAME} main.cpp ${PUBLIC_HEADERS} ${SOURCES})
 
