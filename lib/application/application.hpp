@@ -93,13 +93,7 @@ protected:
     GLFWwindow *window{};
     std::unique_ptr<pvk::Camera> camera;
 
-//    vk::UniqueInstance instance;
-//    vk::UniqueCommandPool commandPool;
-//    vk::UniqueDevice logicalDevice;
-//    vk::PhysicalDevice physicalDevice;
-//    vk::UniquePipelineCache pipelineCache;
-
-    vk::DebugUtilsMessengerEXT debugMessenger;
+    vk::UniqueDebugUtilsMessengerEXT debugMessenger;
     vk::UniqueSurfaceKHR surface;
 
     vk::Queue graphicsQueue;
@@ -361,9 +355,7 @@ protected:
     void setupDebugCallback() {
         if (!enableValidationLayers) return;
 
-        debugMessenger = pvk::Context::getInstance().createDebugUtilsMessengerEXT(
-                getDebugUtilsMessengerCreateInfo()
-        );
+        debugMessenger = pvk::Context::getInstance().createDebugUtilsMessengerEXTUnique(getDebugUtilsMessengerCreateInfo());
     }
 
     void createSurface() {
@@ -446,7 +438,7 @@ protected:
         }
 
         swapChainImages = pvk::Context::getLogicalDevice().getSwapchainImagesKHR(swapChain.get());
-        pvk::Context::setSwapchainImages(swapChainImages);
+        pvk::Context::setSwapChainImages(swapChainImages);
 
         swapChainImageFormat = surfaceFormat.format;
         swapChainExtent = extent;

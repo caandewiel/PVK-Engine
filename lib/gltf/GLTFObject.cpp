@@ -24,10 +24,13 @@ namespace pvk::gltf {
 
     Object::~Object() = default;
 
-    void Object::initializeWriteDescriptorSets(const vk::Device &logicalDevice,
-                                               const vk::DescriptorPool &descriptorPool,
-                                               const vk::DescriptorSetLayout &descriptorSetLayout,
-                                               const uint32_t numberOfSwapChainImages) {
+    auto Object::initializeWriteDescriptorSets(
+            const vk::Device &logicalDevice,
+            const vk::DescriptorPool &descriptorPool,
+            const vk::DescriptorSetLayout &descriptorSetLayout,
+            uint32_t numberOfSwapChainImages,
+            uint32_t descriptorSetIndex
+    ) -> void {
         std::vector<vk::DescriptorSetLayout> layouts(numberOfSwapChainImages, descriptorSetLayout);
 
         for (auto &node : this->nodeLookup) {
@@ -36,8 +39,10 @@ namespace pvk::gltf {
             descriptorSetAllocateInfo.descriptorSetCount = numberOfSwapChainImages;
             descriptorSetAllocateInfo.pSetLayouts = layouts.data();
 
-            node.second->descriptorSets.resize(numberOfSwapChainImages);
-            node.second->descriptorSets = logicalDevice.allocateDescriptorSetsUnique(descriptorSetAllocateInfo);
+            node.second->descriptorSets[descriptorSetIndex].resize(numberOfSwapChainImages);
+            node.second->descriptorSets[descriptorSetIndex] = logicalDevice.allocateDescriptorSetsUnique(
+                    descriptorSetAllocateInfo
+            );
         }
     }
 
@@ -66,4 +71,4 @@ namespace pvk::gltf {
             this->updateJointsByNode(*child);
         }
     }
-}
+}  // namespace pvk::gltf

@@ -17,7 +17,8 @@ namespace pvk::buffer {
         vk::PhysicalDeviceMemoryProperties memProperties = Context::getPhysicalDevice().getMemoryProperties();
 
         for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
-            if (((typeFilter & (1 << i)) != 0U) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+            if (((typeFilter & (1 << i)) != 0U) &&
+                (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
                 return i;
             }
         }
@@ -42,7 +43,8 @@ namespace pvk::buffer {
         }
 
         vk::MemoryRequirements memRequirements = Context::getLogicalDevice().getBufferMemoryRequirements(buffer.get());
-        vk::MemoryAllocateInfo allocInfo = {memRequirements.size, findMemoryType(memRequirements.memoryTypeBits, properties)};
+        vk::MemoryAllocateInfo allocInfo = {memRequirements.size,
+                                            findMemoryType(memRequirements.memoryTypeBits, properties)};
 
         try {
             bufferMemory = Context::getLogicalDevice().allocateMemoryUnique(allocInfo);
@@ -73,14 +75,16 @@ namespace pvk::buffer {
         graphicsQueue.waitIdle();
     }
 
-    void copyToImage(const vk::CommandBuffer &commandBuffer,
-                     const vk::Queue &graphicsQueue,
-                     const vk::UniqueBuffer &buffer,
-                     const vk::Image &image,
-                     uint32_t width, uint32_t height) {
+    void copyToImage(
+            const vk::CommandBuffer &commandBuffer,
+            const vk::Queue &graphicsQueue,
+            const vk::UniqueBuffer &buffer,
+            const vk::Image &image,
+            uint32_t width, uint32_t height, uint32_t numberOfLayers
+    ) {
         vk::BufferImageCopy region = {
                 0, 0, 0,
-                {vk::ImageAspectFlagBits::eColor, 0, 0, NUMBER_OF_FACES_FOR_CUBE},
+                {vk::ImageAspectFlagBits::eColor, 0, 0, numberOfLayers},
                 {0, 0, 0},
                 {width, height, 1},
         };
@@ -91,9 +95,14 @@ namespace pvk::buffer {
 
     void update(const vk::UniqueDeviceMemory &bufferMemory, size_t bufferSize, void *data) {
         void *dataMapped = nullptr;
-        vkMapMemory(Context::getLogicalDevice(), bufferMemory.get(), 0, bufferSize, 0, &dataMapped);
+        auto result = Context::getLogicalDevice().mapMemory(bufferMemory.get(), 0, bufferSize, {}, &dataMapped);
+
+        if (result != vk::Result::eSuccess) {
+            throw std::runtime_error("Failed to map memory");
+        }
+
         memcpy(dataMapped, data, bufferSize);
-        vkUnmapMemory(Context::getLogicalDevice(), bufferMemory.get());
+        Context::getLogicalDevice().unmapMemory(bufferMemory.get());
     }
 
 //    template<typename T, vk::BufferUsageFlagBits F>
@@ -186,11 +195,13 @@ namespace pvk::buffer {
 
             std::array<unsigned char, NUMBER_OF_PIXEL_PER_COLOR> pixels = {0, 0, 0, 0};
 
-            pvk::buffer::create(pixels.size(),
-                                vk::BufferUsageFlagBits::eTransferSrc,
-                                vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
-                                stagingBuffer,
-                                stagingBufferMemory);
+            pvk::buffer::create(
+                    pixels.size(),
+                    vk::BufferUsageFlagBits::eTransferSrc,
+                    vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
+                    stagingBuffer,
+                    stagingBufferMemory
+            );
 
             void *data = Context::getLogicalDevice().mapMemory(stagingBufferMemory.get(), 0, pixels.size());
             memcpy(data, &pixels, pixels.size());
@@ -219,7 +230,8 @@ namespace pvk::buffer {
                                          vk::Format::eR8G8B8A8Unorm, vk::ImageLayout::eUndefined,
                                          vk::ImageLayout::eTransferDstOptimal, 1, 1);
 
-            pvk::buffer::copyToImage(commandBuffers.front(), graphicsQueue, stagingBuffer, texture.image.get(), 1, 1);
+            pvk::buffer::copyToImage(commandBuffers.front(), graphicsQueue, stagingBuffer, texture.image.get(), 1, 1,
+                                     1);
 
             pvk::image::transitionLayout(commandBuffers.front(), graphicsQueue, texture.image.get(),
                                          vk::Format::eR8G8B8A8Unorm, vk::ImageLayout::eTransferDstOptimal,
@@ -260,11 +272,13 @@ namespace pvk::buffer {
 
             assert(gltfImage.component != 3);
 
-            pvk::buffer::create(gltfImage.image.size(),
-                                vk::BufferUsageFlagBits::eTransferSrc,
-                                vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
-                                stagingBuffer,
-                                stagingBufferMemory);
+            pvk::buffer::create(
+                    gltfImage.image.size(),
+                    vk::BufferUsageFlagBits::eTransferSrc,
+                    vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
+                    stagingBuffer,
+                    stagingBufferMemory
+            );
 
             void *data = Context::getLogicalDevice().mapMemory(stagingBufferMemory.get(), 0, gltfImage.image.size());
             memcpy(data, gltfImage.image.data(), gltfImage.image.size());
@@ -297,7 +311,7 @@ namespace pvk::buffer {
                                          vk::ImageLayout::eTransferDstOptimal, 1, 1);
 
             pvk::buffer::copyToImage(commandBuffers.front(), graphicsQueue, stagingBuffer, texture.image.get(), width,
-                                     height);
+                                     height, 1);
 
             pvk::image::transitionLayout(commandBuffers.front(), graphicsQueue, texture.image.get(),
                                          vk::Format::eR8G8B8A8Unorm, vk::ImageLayout::eTransferDstOptimal,
@@ -390,7 +404,7 @@ namespace pvk::buffer {
                                          vk::ImageLayout::eTransferDstOptimal, mipLevels, NUMBER_OF_FACES_FOR_CUBE);
 
             pvk::buffer::copyToImage(commandBuffers.front(), graphicsQueue, stagingBuffer, texture.image.get(), width,
-                                     height);
+                                     height, NUMBER_OF_FACES_FOR_CUBE);
 
             pvk::image::transitionLayout(commandBuffers.front(), graphicsQueue, texture.image.get(),
                                          vk::Format::eR8G8B8A8Unorm, vk::ImageLayout::eTransferDstOptimal,

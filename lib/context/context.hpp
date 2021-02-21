@@ -27,23 +27,25 @@ namespace pvk {
 
         static void setInstance(vk::UniqueInstance &&_instance);
 
-        static void setSwapchainImages(std::vector<vk::Image> _swapchainImages);
+        static void setSwapChainImages(std::vector<vk::Image> _swapChainImages);
         
-        static auto getPhysicalDevice() -> vk::PhysicalDevice;
+        static vk::PhysicalDevice getPhysicalDevice();
 
-        static auto getLogicalDevice() -> vk::Device;
+        static vk::Device getLogicalDevice();
 
-        static auto getCommandPool() -> vk::CommandPool;
+        static vk::CommandPool getCommandPool();
 
-        static auto getPipelineCache() -> vk::PipelineCache;
+        static vk::PipelineCache getPipelineCache();
 
-        static auto getInstance() -> vk::Instance;
+        static vk::Instance getInstance();
 
-        static auto getSwapchainImages() -> const std::vector<vk::Image> &;
+        static const std::vector<vk::Image> &getSwapChainImages();
+
+        static size_t getNumberOfSwapChainImages();
 
     private:
         Context() = default;
     };
-}
+}  // namespace pvk
 
 #endif /* context_hpp */

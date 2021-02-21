@@ -19,33 +19,48 @@
           "bindingIndex": 1,
           "type": "UNIFORM_BUFFER",
           "stage": "VERTEX_AND_FRAGMENT"
-        },
+        }
+      ]
+    },
+    {
+      "index": 1,
+      "visibility": "PRIMITIVE",
+      "bindings": [
         {
           "name": "Material",
-          "bindingIndex": 2,
+          "bindingIndex": 0,
           "type": "UNIFORM_BUFFER",
           "stage": "FRAGMENT"
         },
         {
           "name": "Base color map",
-          "bindingIndex": 3,
+          "bindingIndex": 1,
           "type": "COMBINED_IMAGE_SAMPLER",
-          "stage": "FRAGMENT",
-          "size": 0
+          "stage": "FRAGMENT"
         },
         {
           "name": "Normal color map",
-          "bindingIndex": 4,
+          "bindingIndex": 2,
           "type": "COMBINED_IMAGE_SAMPLER",
-          "stage": "FRAGMENT",
-          "size": 0
+          "stage": "FRAGMENT"
         },
         {
           "name": "Metallic roughness map",
+          "bindingIndex": 3,
+          "type": "COMBINED_IMAGE_SAMPLER",
+          "stage": "FRAGMENT"
+        },
+        {
+          "name": "Occlusion map",
+          "bindingIndex": 4,
+          "type": "COMBINED_IMAGE_SAMPLER",
+          "stage": "FRAGMENT"
+        },
+        {
+          "name": "Emissive map",
           "bindingIndex": 5,
           "type": "COMBINED_IMAGE_SAMPLER",
-          "stage": "FRAGMENT",
-          "size": 0
+          "stage": "FRAGMENT"
         }
       ]
     }

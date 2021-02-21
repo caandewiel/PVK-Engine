@@ -16,38 +16,43 @@
 #include "../util/util.hpp"
 
 namespace pvk::pipeline {
-        class Builder {
-        public:
-            Builder(const vk::RenderPass &renderPass, const vk::UniquePipelineLayout &pipelineLayout);
-            ~Builder();
-            vk::UniquePipeline create(const vk::PipelineCache &cache);
-            vk::UniquePipeline create();
-            void update();
-            void initialize();
-            
-            vk::PipelineCache pipelineCache;
-            vk::RenderPass& renderPass{ pipelineCreateInfo.renderPass };
-            vk::PipelineLayout& layout{ pipelineCreateInfo.layout };
-            uint32_t& subpass{ pipelineCreateInfo.subpass };
-            vk::PipelineInputAssemblyStateCreateInfo inputAssemblyState;
-            vk::PipelineRasterizationStateCreateInfo rasterizationState;
-            vk::PipelineMultisampleStateCreateInfo multisampleState;
-            vk::PipelineDepthStencilStateCreateInfo depthStencilState;
-            vk::PipelineViewportStateCreateInfo viewportState;
-            vk::PipelineDynamicStateCreateInfo dynamicState;
-            vk::PipelineColorBlendStateCreateInfo colorBlendState;
-            vk::PipelineVertexInputStateCreateInfo vertexInputState;
-            vk::PipelineColorBlendAttachmentState colorBlendAttachmentState;
-            std::vector<vk::PipelineShaderStageCreateInfo> shaderStages;
-            
-            // Needs to be set publicly
-            std::vector<vk::VertexInputBindingDescription> bindingDescriptions;
-            std::vector<vk::VertexInputAttributeDescription> attributeDescriptions;
-            std::vector<vk::Viewport> viewports;
-            std::vector<vk::Rect2D> scissors;
+    class Builder {
+    public:
+        Builder(const vk::RenderPass &renderPass, const vk::UniquePipelineLayout &pipelineLayout);
 
-            vk::GraphicsPipelineCreateInfo pipelineCreateInfo;
-        };
-    }
+        ~Builder();
+
+        auto create(const vk::PipelineCache &cache) -> vk::UniquePipeline;
+
+        auto create() -> vk::UniquePipeline;
+
+        void update();
+
+        void initialize();
+
+        vk::PipelineCache pipelineCache;
+        vk::RenderPass &renderPass{pipelineCreateInfo.renderPass};
+        vk::PipelineLayout &layout{pipelineCreateInfo.layout};
+        uint32_t &subpass{pipelineCreateInfo.subpass};
+        vk::PipelineInputAssemblyStateCreateInfo inputAssemblyState;
+        vk::PipelineRasterizationStateCreateInfo rasterizationState;
+        vk::PipelineMultisampleStateCreateInfo multisampleState;
+        vk::PipelineDepthStencilStateCreateInfo depthStencilState;
+        vk::PipelineViewportStateCreateInfo viewportState;
+        vk::PipelineDynamicStateCreateInfo dynamicState;
+        vk::PipelineColorBlendStateCreateInfo colorBlendState;
+        vk::PipelineVertexInputStateCreateInfo vertexInputState;
+        vk::PipelineColorBlendAttachmentState colorBlendAttachmentState;
+        std::vector<vk::PipelineShaderStageCreateInfo> shaderStages;
+
+        // Needs to be set publicly
+        std::vector<vk::VertexInputBindingDescription> bindingDescriptions;
+        std::vector<vk::VertexInputAttributeDescription> attributeDescriptions;
+        std::vector<vk::Viewport> viewports;
+        std::vector<vk::Rect2D> scissors;
+
+        vk::GraphicsPipelineCreateInfo pipelineCreateInfo;
+    };
+}
 
 #endif /* pipeline_hpp */

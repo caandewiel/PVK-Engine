@@ -22,6 +22,7 @@ namespace pvk::gltf {
     class Object {
     public:
         Object() = default;;
+
         Object(std::vector<std::shared_ptr<Node>> nodes,
                std::map<uint32_t, std::shared_ptr<Node>> nodeLookup,
                std::map<uint32_t, std::vector<Primitive *>> primitiveLookup,
@@ -39,16 +40,19 @@ namespace pvk::gltf {
         std::vector<glm::mat4> inverseBindMatrices;
         std::vector<Vertex> vertices;
         std::vector<uint32_t> indices;
-        std::vector<Material*> materials;
+        std::vector<std::unique_ptr<gltf::Material>> materials;
         vk::UniqueBuffer vertexBuffer;
         vk::UniqueDeviceMemory vertexBufferMemory;
         vk::UniqueBuffer indexBuffer;
         vk::UniqueDeviceMemory indexBufferMemory;
 
-        void initializeWriteDescriptorSets(const vk::Device &logicalDevice,
-                                           const vk::DescriptorPool &descriptorPool,
-                                           const vk::DescriptorSetLayout &descriptorSetLayout,
-                                           uint32_t numberOfSwapChainImages);
+        auto initializeWriteDescriptorSets(
+                const vk::Device &logicalDevice,
+                const vk::DescriptorPool &descriptorPool,
+                const vk::DescriptorSetLayout &descriptorSetLayout,
+                uint32_t numberOfSwapChainImages,
+                uint32_t descriptorSetIndex
+        ) -> void;
 
         void updateJoints();
 
@@ -60,6 +64,6 @@ namespace pvk::gltf {
             return it == nodeLookup.end() ? nullptr : it->second;
         }
     };
-}
+}  // namespace pvk::gltf
 
 #endif /* PvkGLTFObject_hpp */

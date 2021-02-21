@@ -15,16 +15,16 @@
 #include "../util/util.hpp"
 
 namespace pvk::image {
-        void create(const uint32_t width,
-                    const uint32_t height,
-                    const uint32_t mipLevels,
-                    const uint32_t arrayLayers,
-                    const vk::SampleCountFlagBits numSamples,
-                    const vk::Format format,
-                    const vk::ImageTiling tiling,
-                    const vk::ImageUsageFlags usage,
-                    const vk::MemoryPropertyFlags properties,
-                    const vk::ImageCreateFlags imageCreateFlags,
+        void create(uint32_t width,
+                    uint32_t height,
+                    uint32_t mipLevels,
+                    uint32_t arrayLayers,
+                    vk::SampleCountFlagBits numSamples,
+                    vk::Format format,
+                    vk::ImageTiling tiling,
+                    vk::ImageUsageFlags usage,
+                    vk::MemoryPropertyFlags properties,
+                    vk::ImageCreateFlags imageCreateFlags,
                     vk::UniqueImage& image,
                     vk::UniqueDeviceMemory& imageMemory);
         
@@ -32,8 +32,8 @@ namespace pvk::image {
                               const vk::Queue &graphicsQueue,
                               const vk::Image &image,
                               const vk::Format &format,
-                              const vk::ImageLayout oldLayout,
-                              const vk::ImageLayout newLayout,
+                              vk::ImageLayout oldLayout,
+                              vk::ImageLayout newLayout,
                               uint32_t mipLevels,
                               uint32_t arrayLayers);
     }

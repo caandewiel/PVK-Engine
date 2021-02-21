@@ -2,9 +2,11 @@ project(pvk)
 cmake_minimum_required(VERSION 3.14)
 
 IF(APPLE)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DVK_USE_PLATFORM_MACOS_MVK -fno-omit-frame-pointer -fsanitize=address -Wall -Wextra -Wshadow -Wno-unused-parameter -Werror")
-    set(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -fno-omit-frame-pointer -fsanitize=address")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DVK_USE_PLATFORM_MACOS_MVK")
 ENDIF()
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-omit-frame-pointer -fsanitize=undefined -Wall -Wextra -Wshadow -Wno-unused-parameter -Werror")
+#set(CMAKE_CXX_FLAGS_RELEASE "-O2")
+set(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -fno-omit-frame-pointer -fsanitize=undefined")
 set(CMAKE_CXX_STANDARD 20)
 
 find_package(Vulkan REQUIRED)

@@ -1,1 +1,1 @@
-Checks: 'modernize-*,performance-*,bugprone-*,cppcoreguidelines-*,readability-*'
+Checks: 'modernize-*,performance-*,bugprone-*,cppcoreguidelines-*,readability-*,misc-*,clang-*,google-*,cert-*,-modernize-use-trailing-return-type,fuchsia-trailing-return'

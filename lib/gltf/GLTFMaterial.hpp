@@ -12,6 +12,8 @@ namespace pvk::gltf {
         std::shared_ptr<Texture> baseColorTexture{};
         std::shared_ptr<Texture> metallicRoughnessTexture{};
         std::shared_ptr<Texture> occlusionTexture{};
+        std::shared_ptr<Texture> normalTexture{};
+        std::shared_ptr<Texture> emissiveTexture{};
         glm::vec4 baseColorFactor{};
         float metallicFactor{};
         float roughnessFactor{};

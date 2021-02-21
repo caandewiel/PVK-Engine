@@ -43,11 +43,9 @@ namespace pvk {
                   vk::UniqueBuffer &dstBuffer,
                   vk::DeviceSize size);
         
-        void copyToImage(const vk::CommandBuffer &commandBuffer,
-                         const vk::Queue &graphicsQueue,
+        void copyToImage(const vk::CommandBuffer &commandBuffer, const vk::Queue &graphicsQueue,
                          const vk::UniqueBuffer &buffer,
-                         const vk::Image &image,
-                         uint32_t width, uint32_t height);
+                         const vk::Image &image, uint32_t width, uint32_t height, uint32_t numberOfLayers);
         
         void update(const vk::UniqueDeviceMemory &bufferMemory,
                     size_t bufferSize,

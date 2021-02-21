@@ -30,7 +30,7 @@ namespace pvk::gltf {
         enum PathType {
             TRANSLATION, ROTATION, SCALE
         } pathType;
-        std::shared_ptr<Node> node;
+        std::weak_ptr<Node> node;
         uint32_t samplerIndex;
     };
 
@@ -58,7 +58,7 @@ namespace pvk::gltf {
                         switch (channel.pathType) {
                             case Channel::TRANSLATION: {
                                 glm::vec4 translation = glm::mix(sampler.outputs[i], sampler.outputs[i + 1], delta);
-                                channel.node->translation = glm::vec3(translation);
+                                channel.node.lock()->translation = glm::vec3(translation);
                                 break;
                             }
                             case Channel::ROTATION: {
@@ -76,22 +76,22 @@ namespace pvk::gltf {
                                         sampler.outputs[i + 1].z,
                                 };
 
-                                channel.node->rotation = glm::mat4(
+                                channel.node.lock()->rotation = glm::mat4(
                                         glm::normalize(glm::slerp(rotationSource, rotationTarget, delta)));
                                 break;
                             }
                             case Channel::SCALE: {
                                 glm::vec4 scale = glm::mix(sampler.outputs[i], sampler.outputs[i + 1], delta);
-                                channel.node->scale = glm::vec3(scale);
+                                channel.node.lock()->scale = glm::vec3(scale);
                                 break;
                             }
                         }
 
-                        auto translationMatrix = glm::translate(glm::mat4(1.0F), channel.node->translation);
-                        auto rotationMatrix = glm::mat4(channel.node->rotation);
-                        auto scaleMatrix = glm::scale(glm::mat4(1.0F), channel.node->scale);
+                        auto translationMatrix = glm::translate(glm::mat4(1.0F), channel.node.lock()->translation);
+                        auto rotationMatrix = glm::mat4(channel.node.lock()->rotation);
+                        auto scaleMatrix = glm::scale(glm::mat4(1.0F), channel.node.lock()->scale);
 
-                        channel.node->matrix = translationMatrix * rotationMatrix * scaleMatrix * glm::mat4(1.0F);
+                        channel.node.lock()->matrix = translationMatrix * rotationMatrix * scaleMatrix * glm::mat4(1.0F);
                     }
                 }
             }
