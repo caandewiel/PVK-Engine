@@ -24,9 +24,9 @@ std::unique_ptr<Object> Object::createFromGLTF(vk::Queue &graphicsQueue, const s
 
 void Object::updateUniformBuffer(void *data, size_t size, uint32_t descriptorSetIndex, uint32_t bindingIndex) const
 {
-    for (auto &node : this->gltfObject->nodeLookup)
+    for (const auto &node : this->gltfObject->getNodes())
     {
-        auto &uniformBuffersMemory = node.second->getUniformBuffersMemory(descriptorSetIndex, bindingIndex);
+        auto &uniformBuffersMemory = node.second.lock()->getUniformBuffersMemory(descriptorSetIndex, bindingIndex);
 
         for (auto &uniformBufferMemory : uniformBuffersMemory)
         {

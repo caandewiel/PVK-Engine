@@ -37,13 +37,32 @@ public:
         uint32_t descriptorSetIndex,
         uint32_t bindingIndex) const
     {
-        for (auto &node : this->gltfObject->nodeLookup)
+        for (const auto &node : this->gltfObject->getNodes())
         {
-            auto &uniformBuffersMemory = node.second->getUniformBuffersMemory(descriptorSetIndex, bindingIndex);
+            auto &uniformBuffersMemory = node.second.lock()->getUniformBuffersMemory(descriptorSetIndex, bindingIndex);
 
             for (auto &uniformBufferMemory : uniformBuffersMemory)
             {
-                function(*this->gltfObject, *node.second, uniformBufferMemory);
+                function(*this->gltfObject, *node.second.lock(), uniformBufferMemory);
+            }
+        }
+    }
+
+    template<typename Fn>
+    void updateUniformBufferPerPrimitive(
+        Fn &&function,
+        uint32_t descriptorSetIndex,
+        uint32_t bindingIndex) const
+    {
+        for (const auto &node : this->gltfObject->getNodes())
+        {
+            for (auto &primitive : node.second.lock()->primitives) {
+                auto &uniformBuffersMemory = primitive->getUniformBuffersMemory(descriptorSetIndex, bindingIndex);
+
+                for (auto &uniformBufferMemory : uniformBuffersMemory)
+                {
+                    function(*this->gltfObject, *primitive, uniformBufferMemory);
+                }
             }
         }
     }

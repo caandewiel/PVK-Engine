@@ -18,9 +18,14 @@ Primitive::Primitive(uint32_t startVertex, uint32_t startIndex, uint32_t vertexC
 
 Primitive::~Primitive() = default;
 
-const Primitive::Material &Primitive::getMaterial() const
+const Material &Primitive::getMaterial() const
 {
-    return material;
+    return *material;
+}
+
+Material &Primitive::getMaterial()
+{
+    return *material;
 }
 
 uint32_t Primitive::getStartIndex() const
@@ -41,16 +46,6 @@ uint32_t Primitive::getIndexCount() const
 uint32_t Primitive::getVertexCount() const
 {
     return vertexCount;
-}
-
-const std::vector<vk::UniqueDescriptorSet> &Primitive::getDescriptorSets() const
-{
-    return descriptorSets;
-}
-
-void Primitive::setDescriptorSets(std::vector<vk::UniqueDescriptorSet> &&_descriptorSets)
-{
-    this->descriptorSets = std::move(_descriptorSets);
 }
 
 } // namespace pvk::gltf

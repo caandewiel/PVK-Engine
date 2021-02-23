@@ -198,7 +198,7 @@ std::unique_ptr<pvk::Pipeline> createPipelineFromDefinition(const std::string &f
     auto pipeline =
         std::make_unique<Pipeline>(pipelineBuilder.create(Context::getPipelineCache()), std::move(pipelineLayout));
 
-    pipeline->setNodeDescriptorSetLayouts(std::move(descriptorSetLayouts));
+    pipeline->setDescriptorSetLayouts(std::move(descriptorSetLayouts));
     pipeline->setDescriptorSetLayoutBindingsLookup(std::move(descriptorSetLayoutBindingsLookup));
     pipeline->setDescriptorSetVisibilities(std::move(descriptorSetVisibilities));
 

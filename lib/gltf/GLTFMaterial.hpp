@@ -14,9 +14,33 @@ namespace pvk::gltf {
         std::shared_ptr<Texture> occlusionTexture{};
         std::shared_ptr<Texture> normalTexture{};
         std::shared_ptr<Texture> emissiveTexture{};
-        glm::vec4 baseColorFactor{};
-        float metallicFactor{};
-        float roughnessFactor{};
+        struct MaterialFactor {
+            glm::vec4 baseColorFactor{};
+            float metallicFactor{};
+            float roughnessFactor{};
+        } materialFactor;
+
+        Texture &getTextureByBinding(uint32_t binding) {
+            switch (binding) {
+                case 1:
+                    return *this->baseColorTexture;
+                    break;
+                case 2:
+                    return *this->normalTexture;
+                    break;
+                case 3:
+                    return *this->metallicRoughnessTexture;
+                    break;
+                case 4:
+                    return *this->occlusionTexture;
+                    break;
+                case 5:
+                    return *this->emissiveTexture;
+                    break;
+                default:
+                    throw std::runtime_error("Invalid binding index.");
+            }
+        }
     };
 }
 

@@ -32,6 +32,7 @@ namespace pvk {
                 : vulkanPipeline(std::move(vulkanPipeline)), pipelineLayout(std::move(pipelineLayout)) {};
 
         Pipeline(Pipeline &&other) = default;
+
         Pipeline &operator=(Pipeline &&other) = default;
 
         ~Pipeline();
@@ -50,13 +51,13 @@ namespace pvk {
 
     private:
         void addWriteDescriptorSetUniformBuffer(std::vector<vk::WriteDescriptorSet> &writeDescriptorSets,
-                                                gltf::Node &node,
+                                                Drawable &drawable,
                                                 const vk::DescriptorSetLayoutBinding &descriptor,
                                                 uint32_t descriptorSetIndex,
-                                                uint32_t swapChainImageIndex);
+                                                uint32_t swapChainImageIndex) const;
 
         void addWriteDescriptorSetCombinedImageSampler(std::vector<vk::WriteDescriptorSet> &writeDescriptorSets,
-                                                       const gltf::Node &node,
+                                                       const Drawable &drawable,
                                                        const vk::DescriptorSetLayoutBinding &descriptor,
                                                        uint32_t descriptorSetIndex,
                                                        uint32_t swapChainImageIndex);
@@ -74,25 +75,38 @@ namespace pvk {
         std::vector<std::map<uint32_t, std::weak_ptr<Texture>>> textures;
 
         std::vector<DescriptorSetVisibility> descriptorSetVisibilities;
-        std::vector<vk::UniqueDescriptorSetLayout> nodeDescriptorSetLayouts;
+        std::vector<vk::UniqueDescriptorSetLayout> descriptorSetLayouts;
         std::vector<std::vector<vk::DescriptorSetLayoutBinding>> descriptorSetLayoutBindingsLookup;
         std::unordered_map<uint8_t, std::unordered_map<uint8_t, size_t>> descriptorSetLayoutBindingSizesLookup;
-        vk::UniqueDescriptorPool descriptorPool;
+        std::vector<vk::UniqueDescriptorPool> descriptorPools;
 
     public:
         void setDescriptorSetVisibilities(std::vector<DescriptorSetVisibility> &&newDescriptorSetVisibilities);
-        void setNodeDescriptorSetLayouts(std::vector<vk::UniqueDescriptorSetLayout> &&newDescriptorSetLayouts);
+
+        void setDescriptorSetLayouts(std::vector<vk::UniqueDescriptorSetLayout> &&newDescriptorSetLayouts);
 
         void setDescriptorSetLayoutBindingsLookup(
                 std::vector<std::vector<vk::DescriptorSetLayoutBinding>> &&newDescriptorSetLayoutBindingsLookup);
 
-        const std::vector<vk::WriteDescriptorSet> &initializeDescriptorSet(
-                uint32_t numberOfSwapchainImages,
-                std::vector<vk::WriteDescriptorSet> &writeDescriptorSets,
-                gltf::Node &node
-        );
+        const std::vector<vk::WriteDescriptorSet> &
+        initializeDescriptorSet(std::vector<vk::WriteDescriptorSet> &writeDescriptorSets, Drawable &drawable);
 
-        void getNumberOfResources(uint32_t numberOfUniformBuffers, uint32_t numberOfCombinedImageSamplers);
+        template <vk::DescriptorType T>
+        uint32_t getNumberOfResources(uint32_t descriptorSetLayoutIndex);
+
+        void initializeDescriptorPools();
+
+        uint32_t getNumberOfNodes();
+
+        uint32_t getNumberOfPrimitives();
+
+        [[nodiscard]] size_t getBindingSize(uint32_t descriptorSetIndex, uint32_t descriptorSetBinding) const {
+            return this->descriptorSetLayoutBindingSizesLookup.at(descriptorSetIndex).at(descriptorSetBinding);
+        }
+
+        std::vector<vk::WriteDescriptorSet> getWriteDescriptorSets();
+
+        void initializeDescriptorSets(std::shared_ptr<Object> &object);
     };
 }  // namespace pvk
 

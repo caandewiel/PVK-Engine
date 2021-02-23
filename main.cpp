@@ -56,16 +56,11 @@ private:
 
         // Load model
         auto t1 = std::chrono::high_resolution_clock::now();
-        _fox = pvk::Object::createFromGLTF(graphicsQueue, "/Users/christian/walk.glb");
+        _fox = pvk::Object::createFromGLTF(graphicsQueue, "/Users/christian/walk2.glb");
         auto t2 = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
         std::cout << "Loading model took " << duration << "ms" << std::endl;
 
-        _pipeline->registerTexture(_fox->gltfObject->materials[0]->baseColorTexture, 1, 1);
-        _pipeline->registerTexture(_fox->gltfObject->materials[0]->normalTexture, 1, 2);
-        _pipeline->registerTexture(_fox->gltfObject->materials[0]->metallicRoughnessTexture, 1, 3);
-        _pipeline->registerTexture(_fox->gltfObject->materials[0]->occlusionTexture, 1, 4);
-        _pipeline->registerTexture(_fox->gltfObject->materials[0]->emissiveTexture, 1, 5);
         _pipeline->registerObject(_fox);
 
         // Load skybox
@@ -82,29 +77,20 @@ private:
         uniformBufferObject.projection =
             glm::perspective(glm::radians(30.0F), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 1000.0F);
         uniformBufferObject.projection[1][1] *= -1;
-        uniformBufferObject.lightPosition = glm::vec3(0.0F, 0.0F, 5.0F);
+        uniformBufferObject.lightPosition = glm::vec3(10.0F, 10.0F, 10.0F);
 
-        auto setMaterial = [](pvk::gltf::Object &object, pvk::gltf::Node &node, vk::UniqueDeviceMemory &memory) {
-            struct
-            {
-                glm::vec4 baseColorFactor = glm::vec4(1.0f, 0.0f, 0.0f, 0.0f);
-                float metallicFactor = 0.0;
-                float roughnessFactor = 0.4f;
-            } material;
-            pvk::buffer::update(memory, sizeof(material), &material);
-            //            pvk::buffer::update(memory,
-            //                                sizeof(object->primitiveLookup[node->nodeIndex][0]->material),
-            //                                &object->primitiveLookup[node->nodeIndex][0]->material);
+        auto setMaterial = [](pvk::gltf::Object &object, pvk::gltf::Primitive &primitive, vk::UniqueDeviceMemory &memory) {
+            pvk::buffer::update(memory, sizeof(primitive.getMaterial().materialFactor), &primitive.getMaterial().materialFactor);
         };
 
-        _fox->updateUniformBufferPerNode(setMaterial, 1, 0);
+        _fox->updateUniformBufferPerPrimitive(setMaterial, 1, 0);
     }
 
     void update() override
     {
         uniformBufferObject.view = camera->getViewMatrix();
         uniformBufferObject.cameraPosition = camera->position;
-        uniformBufferObject.lightPosition += glm::vec3(0, 0, 10.0F * this->deltaTime);
+//        uniformBufferObject.lightPosition += glm::vec3(0, 0, 10.0F * this->deltaTime);
 
         _fox->updateUniformBuffer(&uniformBufferObject, sizeof(uniformBufferObject), 0, 0);
         _skyboxObject->updateUniformBuffer(&uniformBufferObject, sizeof(uniformBufferObject), 0, 0);
@@ -138,14 +124,14 @@ private:
 
     void render(pvk::CommandBuffer *commandBuffer) override
     {
-        for (auto &node : _skyboxObject->gltfObject->nodeLookup)
+        for (const auto &node : _skyboxObject->gltfObject->getNodes())
         {
-            commandBuffer->drawNode(*_skyboxPipeline, *_skyboxObject->gltfObject, *node.second);
+            commandBuffer->drawNode(*_skyboxPipeline, *_skyboxObject->gltfObject, *node.second.lock());
         }
 
-        for (auto &node : _fox->gltfObject->nodeLookup)
+        for (const auto &node : _fox->gltfObject->getNodes())
         {
-            commandBuffer->drawNode(*_pipeline, *_fox->gltfObject, *node.second);
+            commandBuffer->drawNode(*_pipeline, *_fox->gltfObject, *node.second.lock());
         }
     }
 

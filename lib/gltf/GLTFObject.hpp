@@ -12,6 +12,7 @@
 #include <vector>
 #include <map>
 #include <vulkan/vulkan.hpp>
+#include <boost/container/flat_map.hpp>
 
 #include "GLTFNode.hpp"
 #include "GLTFAnimation.hpp"
@@ -24,16 +25,15 @@ namespace pvk::gltf {
         Object() = default;;
 
         Object(std::vector<std::shared_ptr<Node>> nodes,
-               std::map<uint32_t, std::shared_ptr<Node>> nodeLookup,
-               std::map<uint32_t, std::vector<Primitive *>> primitiveLookup,
+               boost::container::flat_map<uint32_t, std::weak_ptr<Node>> nodeLookup,
+               std::map<uint32_t, std::vector<std::weak_ptr<Primitive>>> primitiveLookup,
                std::vector<std::unique_ptr<Animation>> animations,
                std::vector<std::shared_ptr<Skin>> skins);
 
         ~Object();
 
         std::vector<std::shared_ptr<Node>> nodes;
-        std::map<uint32_t, std::shared_ptr<Node>> nodeLookup;
-        std::map<uint32_t, std::vector<Primitive *>> primitiveLookup;
+        std::map<uint32_t, std::vector<std::weak_ptr<Primitive>>> primitiveLookup;
         std::map<uint32_t, std::shared_ptr<Skin>> skinLookup;
         std::vector<std::unique_ptr<Animation>> animations;
         std::vector<std::shared_ptr<Skin>> skins;
@@ -46,23 +46,45 @@ namespace pvk::gltf {
         vk::UniqueBuffer indexBuffer;
         vk::UniqueDeviceMemory indexBufferMemory;
 
-        auto initializeWriteDescriptorSets(
-                const vk::Device &logicalDevice,
-                const vk::DescriptorPool &descriptorPool,
-                const vk::DescriptorSetLayout &descriptorSetLayout,
-                uint32_t numberOfSwapChainImages,
-                uint32_t descriptorSetIndex
-        ) -> void;
+        void initializeWriteDescriptorSets(const vk::DescriptorPool &descriptorPool,
+                                           const vk::DescriptorSetLayout &descriptorSetLayout,
+                                           uint32_t numberOfSwapChainImages,
+                                           uint32_t descriptorSetIndex);
 
         void updateJoints();
 
         void updateJointsByNode(Node &node);
 
-        [[nodiscard]] auto getNodeByIndex(uint32_t index) -> std::shared_ptr<Node> {
+        [[nodiscard]] const Node & getNodeByIndex(uint32_t index) const {
             auto it = nodeLookup.find(index);
 
-            return it == nodeLookup.end() ? nullptr : it->second;
+            if (it == nodeLookup.end()) {
+                throw std::runtime_error("Node not found by index.");
+            } else {
+                return *it->second.lock();
+            }
         }
+
+        [[nodiscard]] size_t getNumberOfPrimitives() const {
+            size_t numberOfPrimitives = 0;
+
+            for (const auto &primitivesByNode : this->primitiveLookup) {
+                numberOfPrimitives += primitivesByNode.second.size();
+            }
+
+            return numberOfPrimitives;
+        }
+
+        [[nodiscard]] const boost::container::flat_map<uint32_t, std::weak_ptr<Node>> &getNodes() const {
+            return this->nodeLookup;
+        }
+
+        void setNodeLookup(boost::container::flat_map<uint32_t, std::weak_ptr<Node>> newNodeLookup) {
+            this->nodeLookup = std::move(newNodeLookup);
+        }
+
+    private:
+        boost::container::flat_map<uint32_t, std::weak_ptr<Node>> nodeLookup;
     };
 }  // namespace pvk::gltf
 

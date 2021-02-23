@@ -4,15 +4,16 @@ cmake_minimum_required(VERSION 3.14)
 IF(APPLE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DVK_USE_PLATFORM_MACOS_MVK")
 ENDIF()
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-omit-frame-pointer -fsanitize=undefined -Wall -Wextra -Wshadow -Wno-unused-parameter -Werror")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-omit-frame-pointer -Wall -Wextra -Wshadow -Wno-unused-parameter -Werror")
 #set(CMAKE_CXX_FLAGS_RELEASE "-O2")
-set(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -fno-omit-frame-pointer -fsanitize=undefined")
+set(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -fno-omit-frame-pointer ")
 set(CMAKE_CXX_STANDARD 20)
 
 find_package(Vulkan REQUIRED)
 find_package(glfw3 3.3 REQUIRED)
 find_package(ASSIMP 5.0.1 REQUIRED)
 find_package(Threads REQUIRED)
+find_package(Boost REQUIRED)
 
 FILE(GLOB application_src)
 
@@ -48,7 +49,7 @@ SET(PUBLIC_HEADERS
         lib/texture/texture.hpp
         lib/util/util.hpp
         lib/gltf/GLTFSkin.hpp
-        lib/gltf/GLTFMaterial.hpp lib/pipeline/pipelineParser.hpp)
+        lib/gltf/GLTFMaterial.hpp lib/pipeline/pipelineParser.hpp lib/gltf/Drawable.cpp lib/gltf/Drawable.h)
 
 SET(SOURCES
         lib/buffer/buffer.cpp
@@ -72,7 +73,7 @@ SET(SOURCES
         lib/shader/shader.cpp
         lib/texture/texture.cpp
         lib/util/util.cpp
-        lib/gltf/GLTFSkin.cpp external/proxy/gli.h external/proxy/tiny_gltf.h)
+        lib/gltf/GLTFSkin.cpp external/proxy/gli.h external/proxy/tiny_gltf.h lib/gltf/Drawable.cpp lib/gltf/Drawable.h)
 
 add_executable(${PROJECT_NAME} main.cpp ${PUBLIC_HEADERS} ${SOURCES})
 
@@ -82,7 +83,8 @@ if (VULKAN_FOUND)
     message(${ASSIMP_INCLUDE_DIRS} " " ${ASSIMP_LIBRARIES})
     include_directories(${Vulkan_INCLUDE_DIRS})
     include_directories(${ASSIMP_INCLUDE_DIRS})
-    target_link_libraries (${PROJECT_NAME} ${Vulkan_LIBRARIES} ${ASSIMP_LIBRARIES} glfw)
+    include_directories(${Boost_INCLUDE_DIR})
+    target_link_libraries (${PROJECT_NAME} ${Vulkan_LIBRARIES} ${ASSIMP_LIBRARIES} ${BOOST_LIBRARIES} glfw)
 endif (VULKAN_FOUND)
 
 target_link_libraries(pvk Vulkan::Vulkan Threads::Threads)

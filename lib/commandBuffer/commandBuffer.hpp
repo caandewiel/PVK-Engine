@@ -37,7 +37,7 @@ class CommandBuffer
                                                     nullptr);
             for (auto &primitive : object.primitiveLookup.at(node.nodeIndex))
             {
-                this->commandBuffer->draw(primitive->getVertexCount(), 1, primitive->getStartVertex(), 0);
+                this->commandBuffer->draw(primitive.lock()->getVertexCount(), 1, primitive.lock()->getStartVertex(), 0);
             }
         }
         else
@@ -46,13 +46,24 @@ class CommandBuffer
             this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
                                                     pipeline.getPipelineLayout().get(),
                                                     0,
-                                                    node.descriptorSets.size(),
+                                                    node.getDescriptorSets().size(),
                                                     node.getDescriptorSetsBySwapChainIndex(this->swapchainIndex).data(),
                                                     0,
                                                     nullptr);
 
             for (auto &primitive : node.primitives)
             {
+                if (primitive->getDescriptorSets().empty()) {
+                    // Primitive has no descriptor set.
+                } else {
+                    this->commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
+                                                            pipeline.getPipelineLayout().get(),
+                                                            1,
+                                                            primitive->getDescriptorSets().size(),
+                                                            primitive->getDescriptorSetsBySwapChainIndex(this->swapchainIndex).data(),
+                                                            0,
+                                                            nullptr);
+                }
                 this->commandBuffer->drawIndexed(primitive->getIndexCount(), 1, primitive->getStartIndex(), 0, 0);
             }
         }
