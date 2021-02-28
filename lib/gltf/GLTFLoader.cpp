@@ -742,4 +742,28 @@ namespace pvk {
             return indices;
         });
     }
+
+    namespace gltf::animation {
+        std::vector<std::unique_ptr<Animation>> createFromGLTF(const std::string &filename,
+                                                               const Object &object) {
+            tinygltf::TinyGLTF loader;
+            auto model = std::make_shared<tinygltf::Model>();
+            std::string error;
+            std::string warning;
+
+            bool isAnimationLoaded = false;
+
+            if (endsWith(filename, EXTENSION_GLB)) {
+                isAnimationLoaded = loader.LoadBinaryFromFile(model.get(), &error, &warning, filename);
+            } else {
+                isAnimationLoaded = loader.LoadASCIIFromFile(model.get(), &error, &warning, filename);
+            }
+
+            if (!isAnimationLoaded) {
+                throw std::runtime_error("Could not load glTF animation");
+            }
+
+            return GLTFLoader::loadAnimations(model, object.getNodes());
+        }
+    }
 } // namespace pvk

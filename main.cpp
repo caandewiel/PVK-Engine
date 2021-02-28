@@ -13,6 +13,7 @@ private:
     std::unique_ptr<pvk::Pipeline> _skyboxPipeline;
 
     std::shared_ptr<pvk::Object> _fox;
+    std::vector<std::unique_ptr<pvk::gltf::Animation>> _runningAnimation;
     std::shared_ptr<pvk::Object> _skyboxObject;
 
     std::shared_ptr<pvk::Texture> _skyboxTexture;
@@ -56,7 +57,8 @@ private:
 
         // Load model
         auto t1 = std::chrono::high_resolution_clock::now();
-        _fox = pvk::Object::createFromGLTF(graphicsQueue, "/Users/christian/Downloads/chaman_ti-pche_3_animations/scene.gltf");
+        _fox = pvk::Object::createFromGLTF(graphicsQueue, "/Users/christian/ybot.glb");
+        _runningAnimation = pvk::gltf::animation::createFromGLTF("/Users/christian/animation.glb", *_fox->gltfObject);
         auto t2 = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
         std::cout << "Loading model took " << duration << "ms" << std::endl;
@@ -110,12 +112,13 @@ private:
 
         const auto setUniformBufferObject =
             [](pvk::gltf::Object &object, pvk::gltf::Node &node, vk::UniqueDeviceMemory &memory) {
-                node.bufferObject.model = glm::scale(glm::mat4(1.0f), glm::vec3(0.1F));
+                node.bufferObject.model = glm::scale(glm::mat4(1.0f), glm::vec3(1.0F));
                 node.bufferObject.localMatrix = node.getGlobalMatrix();
                 pvk::buffer::update(memory, sizeof(node.bufferObject), &node.bufferObject);
             };
 
-        _fox->getAnimation(0).update(this->deltaTime);
+//        _fox->getAnimation(0).update(this->deltaTime);
+        _runningAnimation[0]->update(this->deltaTime);
         _fox->gltfObject->updateJoints();
         _fox->updateUniformBufferPerNode(updateInverseBindMatrices, 0, 1);
         _fox->updateUniformBufferPerNode(setUniformBufferObject, 0, 1);
