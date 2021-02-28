@@ -24,6 +24,9 @@ jobs:
         sudo ./llvm.sh 11
         sudo apt-get install -y build-essential pkg-config g++-10 xorg-dev libglu1-mesa-dev libopenal-dev libvulkan-dev
 
+    - name: Create Build Environment
+      run: cmake -E make_directory ${{github.workspace}}/build
+
     - name: Configure CMake
       # Use a bash shell so we can use the same syntax for environment variable
       # access regardless of the host operating system
