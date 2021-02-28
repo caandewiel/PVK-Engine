@@ -56,7 +56,7 @@ private:
 
         // Load model
         auto t1 = std::chrono::high_resolution_clock::now();
-        _fox = pvk::Object::createFromGLTF(graphicsQueue, "/Users/christian/walk2.glb");
+        _fox = pvk::Object::createFromGLTF(graphicsQueue, "/Users/christian/Downloads/chaman_ti-pche_3_animations/scene.gltf");
         auto t2 = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
         std::cout << "Loading model took " << duration << "ms" << std::endl;
@@ -110,7 +110,7 @@ private:
 
         const auto setUniformBufferObject =
             [](pvk::gltf::Object &object, pvk::gltf::Node &node, vk::UniqueDeviceMemory &memory) {
-                node.bufferObject.model = glm::scale(glm::mat4(1.0f), glm::vec3(1.0F));
+                node.bufferObject.model = glm::scale(glm::mat4(1.0f), glm::vec3(0.1F));
                 node.bufferObject.localMatrix = node.getGlobalMatrix();
                 pvk::buffer::update(memory, sizeof(node.bufferObject), &node.bufferObject);
             };

@@ -12,8 +12,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(Vulkan REQUIRED)
-find_package(glfw3 3.3 REQUIRED)
-find_package(ASSIMP 5.0.1 REQUIRED)
+find_package(glfw3 REQUIRED)
 find_package(Threads REQUIRED)
 find_package(Boost REQUIRED)
 find_package(GTest REQUIRED)
@@ -52,7 +51,7 @@ SET(PUBLIC_HEADERS
         lib/texture/texture.hpp
         lib/util/util.hpp
         lib/gltf/GLTFSkin.hpp
-        lib/gltf/GLTFMaterial.hpp lib/pipeline/pipelineParser.hpp lib/gltf/Drawable.cpp lib/gltf/Drawable.h test/VulkanEnvironment.hpp)
+        lib/gltf/GLTFMaterial.hpp lib/pipeline/pipelineParser.hpp lib/gltf/Drawable.cpp lib/gltf/Drawable.h)
 
 SET(SOURCES
         lib/buffer/buffer.cpp
@@ -91,12 +90,11 @@ if (VULKAN_FOUND)
     message(${ASSIMP_INCLUDE_DIRS} " " ${ASSIMP_LIBRARIES})
     message(${GTEST_INCLUDE_DIRS} " " ${GTEST_LIBRARIES})
     include_directories(${Vulkan_INCLUDE_DIRS})
-    include_directories(${ASSIMP_INCLUDE_DIRS})
     include_directories(${Boost_INCLUDE_DIR})
     include_directories(${GTEST_INCLUDE_DIRS})
-    target_link_libraries (${PROJECT_NAME} ${Vulkan_LIBRARIES} ${ASSIMP_LIBRARIES} ${BOOST_LIBRARIES} glfw)
+    target_link_libraries (${PROJECT_NAME} ${Vulkan_LIBRARIES} ${BOOST_LIBRARIES} glfw)
 endif (VULKAN_FOUND)
 
-target_link_libraries(runTests /usr/local/lib/libgtest.a /usr/local/lib/libgtest_main.a ${Vulkan_LIBRARIES} ${ASSIMP_LIBRARIES} ${BOOST_LIBRARIES} glfw)
+target_link_libraries(runTests /usr/local/lib/libgtest.a /usr/local/lib/libgtest_main.a ${Vulkan_LIBRARIES} ${BOOST_LIBRARIES} glfw)
 
 target_link_libraries(pvk Vulkan::Vulkan Threads::Threads)
