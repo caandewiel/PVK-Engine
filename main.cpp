@@ -75,7 +75,7 @@ private:
 
         uniformBufferObject.view = camera->getViewMatrix();
         uniformBufferObject.projection =
-            glm::perspective(glm::radians(30.0F), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 1000.0F);
+            glm::perspective(glm::radians(30.0F), swapChainExtent.width / (float)swapChainExtent.height, 0.1F, 1000.0F);
         uniformBufferObject.projection[1][1] *= -1;
         uniformBufferObject.lightPosition = glm::vec3(10.0F, 10.0F, 10.0F);
 

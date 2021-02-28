@@ -218,7 +218,7 @@ protected:
     }
 
     static void framebufferResizeCallback(GLFWwindow *window, int width, int height) {
-        auto app = reinterpret_cast<Application *>(glfwGetWindowUserPointer(window));
+        auto *app = reinterpret_cast<Application *>(glfwGetWindowUserPointer(window));
         app->framebufferResized = true;
     }
 
@@ -304,7 +304,7 @@ protected:
         createCommandBuffers();
     }
 
-    void createInstance() {
+    static void createInstance() {
         if (enableValidationLayers && !checkValidationLayerSupport()) {
             throw std::runtime_error("validation layers requested, but not available!");
         }
@@ -517,7 +517,7 @@ protected:
         std::vector<vk::AttachmentDescription> attachments = {colorAttachment, depthAttachment};
 
         vk::RenderPassCreateInfo renderPassInfo = {};
-        renderPassInfo.attachmentCount = (uint32_t) attachments.size();
+        renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
         renderPassInfo.pAttachments = attachments.data();
         renderPassInfo.subpassCount = 1;
         renderPassInfo.pSubpasses = &subpass;
@@ -622,7 +622,7 @@ protected:
         vk::CommandBufferAllocateInfo allocInfo = {};
         allocInfo.commandPool = pvk::Context::getCommandPool();
         allocInfo.level = vk::CommandBufferLevel::ePrimary;
-        allocInfo.commandBufferCount = (uint32_t) commandBuffers.size();
+        allocInfo.commandBufferCount = static_cast<uint32_t>(commandBuffers.size());
 
         try {
             commandBuffers = pvk::Context::getLogicalDevice().allocateCommandBuffersUnique(allocInfo);
@@ -656,7 +656,7 @@ protected:
 
             commandBuffers[i].get().beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
 
-            auto commandBufferPublic = std::make_unique<pvk::CommandBuffer>(&commandBuffers[i].get(), (uint32_t) i);
+            auto commandBufferPublic = std::make_unique<pvk::CommandBuffer>(&commandBuffers[i].get(), static_cast<uint32_t>(i));
 
             render(commandBufferPublic.get());
 
@@ -825,7 +825,7 @@ protected:
 
     static auto getRequiredExtensions() -> std::vector<const char *> {
         uint32_t glfwExtensionCount = 0;
-        const char **glfwExtensions;
+        const char **glfwExtensions = nullptr;
         glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
         std::vector<const char *> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);

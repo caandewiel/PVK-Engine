@@ -3,17 +3,20 @@ cmake_minimum_required(VERSION 3.14)
 
 IF(APPLE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DVK_USE_PLATFORM_MACOS_MVK")
+    SET(CMAKE_OSX_ARCHITECTURES "arm64" CACHE STRING "Build architectures for Mac OS X" FORCE)
 ENDIF()
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-omit-frame-pointer -Wall -Wextra -Wshadow -Wno-unused-parameter -Werror")
 #set(CMAKE_CXX_FLAGS_RELEASE "-O2")
 set(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -fno-omit-frame-pointer ")
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(Vulkan REQUIRED)
 find_package(glfw3 3.3 REQUIRED)
 find_package(ASSIMP 5.0.1 REQUIRED)
 find_package(Threads REQUIRED)
 find_package(Boost REQUIRED)
+find_package(GTest REQUIRED)
 
 FILE(GLOB application_src)
 
@@ -49,7 +52,7 @@ SET(PUBLIC_HEADERS
         lib/texture/texture.hpp
         lib/util/util.hpp
         lib/gltf/GLTFSkin.hpp
-        lib/gltf/GLTFMaterial.hpp lib/pipeline/pipelineParser.hpp lib/gltf/Drawable.cpp lib/gltf/Drawable.h)
+        lib/gltf/GLTFMaterial.hpp lib/pipeline/pipelineParser.hpp lib/gltf/Drawable.cpp lib/gltf/Drawable.h test/VulkanEnvironment.hpp)
 
 SET(SOURCES
         lib/buffer/buffer.cpp
@@ -73,18 +76,27 @@ SET(SOURCES
         lib/shader/shader.cpp
         lib/texture/texture.cpp
         lib/util/util.cpp
-        lib/gltf/GLTFSkin.cpp external/proxy/gli.h external/proxy/tiny_gltf.h lib/gltf/Drawable.cpp lib/gltf/Drawable.h)
+        lib/gltf/GLTFSkin.cpp
+        external/proxy/gli.h
+        external/proxy/tiny_gltf.h
+        lib/gltf/Drawable.cpp
+        lib/gltf/Drawable.h)
 
 add_executable(${PROJECT_NAME} main.cpp ${PUBLIC_HEADERS} ${SOURCES})
+add_executable(runTests test/pvk_test.cpp ${PUBLIC_HEADERS} ${SOURCES} test/MockApplication.hpp)
 
 if (VULKAN_FOUND)
     message(STATUS "Found Vulkan, Including and Linking now")
     message(${Vulkan_INCLUDE_DIRS} " " ${Vulkan_LIBRARIES})
     message(${ASSIMP_INCLUDE_DIRS} " " ${ASSIMP_LIBRARIES})
+    message(${GTEST_INCLUDE_DIRS} " " ${GTEST_LIBRARIES})
     include_directories(${Vulkan_INCLUDE_DIRS})
     include_directories(${ASSIMP_INCLUDE_DIRS})
     include_directories(${Boost_INCLUDE_DIR})
+    include_directories(${GTEST_INCLUDE_DIRS})
     target_link_libraries (${PROJECT_NAME} ${Vulkan_LIBRARIES} ${ASSIMP_LIBRARIES} ${BOOST_LIBRARIES} glfw)
 endif (VULKAN_FOUND)
+
+target_link_libraries(runTests /usr/local/lib/libgtest.a /usr/local/lib/libgtest_main.a ${Vulkan_LIBRARIES} ${ASSIMP_LIBRARIES} ${BOOST_LIBRARIES} glfw)
 
 target_link_libraries(pvk Vulkan::Vulkan Threads::Threads)

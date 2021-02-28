@@ -1,0 +1,35 @@
+{
+    "cullingMode": "FRONT",
+    "enableDepth": false,
+    "vertexShader": "/Users/christian/PVK-Engine/shaders/skybox_new.vert.spv",
+    "fragmentShader": "/Users/christian/PVK-Engine/shaders/skybox_new.frag.spv",
+    "descriptorSets": [
+      {
+        "index": 0,
+        "visibility": "NODE",
+        "bindings": [
+          {
+            "name": "UBO",
+            "bindingIndex": 0,
+            "type": "UNIFORM_BUFFER",
+            "stage": "VERTEX_AND_FRAGMENT",
+            "size": 152
+          },
+          {
+            "name": "UBO per node",
+            "bindingIndex": 1,
+            "type": "UNIFORM_BUFFER",
+            "stage": "VERTEX",
+            "size": 16516
+          },
+          {
+            "name": "Texture cube",
+            "bindingIndex": 2,
+            "type": "COMBINED_IMAGE_SAMPLER",
+            "stage": "FRAGMENT",
+            "size": 0
+          }
+        ]
+      }
+    ]
+  }
