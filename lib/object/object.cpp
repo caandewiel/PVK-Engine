@@ -13,7 +13,7 @@ Object::Object() = default;
 
 Object::~Object() = default;
 
-std::unique_ptr<Object> Object::createFromGLTF(vk::Queue &graphicsQueue, const std::string &filename)
+std::unique_ptr<Object> Object::createFromGLTF(vk::Queue &&graphicsQueue, const std::string &filename)
 {
     auto object = std::unique_ptr<Object>(new Object());
 

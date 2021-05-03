@@ -26,6 +26,8 @@ namespace pvk {
 
         static void setInstance(vk::UniqueInstance &&_instance);
 
+        static void setGraphicsQueue(vk::Queue &&_queue);
+
         static void setSwapChainImages(std::vector<vk::Image> _swapChainImages);
         
         static vk::PhysicalDevice getPhysicalDevice();
@@ -35,6 +37,8 @@ namespace pvk {
         static vk::CommandPool getCommandPool();
 
         static vk::PipelineCache getPipelineCache();
+
+        static vk::Queue getGraphicsQueue();
 
         static vk::Instance getInstance();
 

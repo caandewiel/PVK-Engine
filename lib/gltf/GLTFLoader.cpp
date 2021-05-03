@@ -8,6 +8,8 @@
 #include "GLTFLoader.hpp"
 #include "loader/GLTFLoaderNode.hpp"
 #include "loader/GLTFLoaderVertex.hpp"
+#include "loader/GLTFLoaderAnimation.hpp"
+#include "loader/GLTFLoaderMaterial.hpp"
 
 #include <numeric>
 #include <utility>
@@ -21,9 +23,7 @@ namespace {
 
         return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
     }
-}
 
-namespace {
     inline std::vector<std::shared_ptr<pvk::gltf::Node>>
     getAllNode(const std::shared_ptr<pvk::gltf::Node> &node) {
         std::vector<std::shared_ptr<pvk::gltf::Node>> allNodes;
@@ -104,184 +104,15 @@ namespace pvk {
         return object;
     }
 
-    std::future<void>
-    GLTFLoader::createVertexBuffer(vk::Queue &graphicsQueue, const std::unique_ptr<gltf::Object> &object) {
-        return std::async(std::launch::async, [&, &object = *object] {
-            buffer::vertex::create(graphicsQueue, object.vertexBuffer, object.vertexBufferMemory, object.vertices);
-        });
-    }
-
-    std::future<void>
-    GLTFLoader::createIndexBuffer(vk::Queue &graphicsQueue, const std::unique_ptr<gltf::Object> &object) {
-        return std::async(std::launch::async, [&, &object = *object] {
-            if (!object.indices.empty()) {
-                buffer::index::create(graphicsQueue, object.indexBuffer, object.indexBufferMemory, object.indices);
-            }
-        });
-    }
-
-    std::unique_ptr<gltf::Material> GLTFLoader::loadMaterial(
-            const std::shared_ptr<tinygltf::Model> &model,
-            const vk::Queue &graphicsQueue,
-            uint32_t materialIndex
-    ) {
-        auto loadTexture = [&](const int8_t textureIndex) {
-            auto texture = std::make_unique<Texture>();
-
-            if (textureIndex > -1) {
-                const auto &baseColorTexture = model->textures[textureIndex];
-                const auto &baseColorTextureImage = model->images[baseColorTexture.source];
-                buffer::texture::create(graphicsQueue, baseColorTextureImage, *texture);
-            } else {
-                buffer::texture::createEmpty(graphicsQueue, *texture);
-            }
-
-            return texture;
-        };
-
-        auto &material = model->materials[materialIndex];
-        auto _material = std::make_unique<gltf::Material>();
-
-        _material->baseColorTexture = loadTexture(material.pbrMetallicRoughness.baseColorTexture.index);
-        _material->metallicRoughnessTexture = loadTexture(material.pbrMetallicRoughness.metallicRoughnessTexture.index);
-        _material->occlusionTexture = loadTexture(material.occlusionTexture.index);
-        _material->normalTexture = loadTexture(material.normalTexture.index);
-        _material->emissiveTexture = loadTexture(material.emissiveTexture.index);
-        _material->materialFactor = {glm::make_vec4(material.pbrMetallicRoughness.baseColorFactor.data()),
-                                     static_cast<float>(material.pbrMetallicRoughness.metallicFactor),
-                                     static_cast<float>(material.pbrMetallicRoughness.roughnessFactor)};
-
-        return _material;
-    }
-
     std::vector<std::unique_ptr<gltf::Animation>> GLTFLoader::loadAnimations(
             const std::shared_ptr<tinygltf::Model> &model,
             const boost::container::flat_map<uint32_t, std::weak_ptr<gltf::Node>> &nodeLookup
     ) {
-        auto loadAnimationInputs = [&model](const tinygltf::AnimationSampler &sampler, gltf::Sampler &_sampler) {
-            auto &accessor = model->accessors[sampler.input];
-            auto &bufferView = model->bufferViews[accessor.bufferView];
-            auto &buffer = model->buffers[bufferView.buffer];
-
-            const void *bufferPointer = &buffer.data[accessor.byteOffset + bufferView.byteOffset];
-            const auto timeValueBuffer = std::span<const float>(
-                    static_cast<const float *>(bufferPointer),
-                    bufferView.byteLength
-            );
-
-            if (sampler.interpolation == "LINEAR") {
-                _sampler.interpolationType = gltf::Sampler::InterpolationType::LINEAR;
-            } else if (sampler.interpolation == "STEP") {
-                _sampler.interpolationType = gltf::Sampler::InterpolationType::STEP;
-            } else if (sampler.interpolation == "CUBICSPLINE") {
-                _sampler.interpolationType = gltf::Sampler::InterpolationType::CUBICSPLINE;
-            } else {
-                throw std::runtime_error("Unsupported animation interpolation type");
-            }
-
-            _sampler.inputs.reserve(accessor.count);
-
-            for (size_t i = 0; i < accessor.count; i++) {
-                _sampler.inputs.emplace_back(timeValueBuffer[i]);
-            }
-        };
-
-        auto loadAnimationOutputs = [&model](const tinygltf::AnimationSampler &sampler, gltf::Sampler &_sampler) {
-            auto &accessor = model->accessors[sampler.output];
-            auto &bufferView = model->bufferViews[accessor.bufferView];
-            auto &buffer = model->buffers[bufferView.buffer];
-
-            const void *bufferPointer = &buffer.data[accessor.byteOffset + bufferView.byteOffset];
-            _sampler.outputs.reserve(accessor.count);
-
-            switch (accessor.type) {
-                case TINYGLTF_TYPE_VEC3: {
-                    const auto outputsSpan = std::span<const glm::vec3>(
-                            static_cast<const glm::vec3 *>(bufferPointer),
-                            bufferView.byteLength
-                    );
-
-                    for (const auto &output : outputsSpan) {
-                        _sampler.outputs.emplace_back(glm::vec4(output, 0.0f));
-                    }
-
-                    break;
-                }
-                case TINYGLTF_TYPE_VEC4: {
-                    const auto outputsSpan = std::span<const glm::vec4>(
-                            static_cast<const glm::vec4 *>(bufferPointer),
-                            bufferView.byteLength
-                    );
-
-                    for (const auto &output : outputsSpan) {
-                        _sampler.outputs.emplace_back(output);
-                    }
-
-                    break;
-                }
-                case TINYGLTF_TYPE_SCALAR: {
-                    break;
-                }
-                default:
-                    throw std::runtime_error("Unsupported animation output type");
-            }
-        };
-
-        auto loadAnimationChannels = [&nodeLookup](tinygltf::AnimationChannel &channel, gltf::Channel &_channel) {
-            if (channel.target_path == "rotation") {
-                _channel.pathType = gltf::Channel::PathType::ROTATION;
-            } else if (channel.target_path == "translation") {
-                _channel.pathType = gltf::Channel::PathType::TRANSLATION;
-            } else if (channel.target_path == "scale") {
-                _channel.pathType = gltf::Channel::PathType::SCALE;
-            } else {
-                // @TODO: Implement weights later.
-            }
-
-            _channel.samplerIndex = channel.sampler;
-            _channel.node = nodeLookup.at(channel.target_node);
-        };
-
         std::vector<std::unique_ptr<gltf::Animation>> animations;
         animations.reserve(model->animations.size());
 
         for (auto &animation : model->animations) {
-            auto _animation = std::make_unique<gltf::Animation>();
-            _animation->samplers.reserve(animation.samplers.size());
-            _animation->channels.reserve(animation.channels.size());
-
-            for (auto &sampler : animation.samplers) {
-                gltf::Sampler localSampler;
-
-                loadAnimationInputs(sampler, localSampler);
-                loadAnimationOutputs(sampler, localSampler);
-
-                _animation->samplers.emplace_back(localSampler);
-            }
-
-            for (auto &channel : animation.channels) {
-                gltf::Channel localChannel{};
-
-                loadAnimationChannels(channel, localChannel);
-
-                _animation->channels.emplace_back(localChannel);
-            }
-
-            _animation->currentTime = 0.0F;
-            _animation->startTime = 0.0F;
-            _animation->endTime = -1.0F;
-
-            for (auto &sampler : _animation->samplers) {
-                for (auto &input : sampler.inputs) {
-                    if (_animation->endTime == -1.0F) {
-                        _animation->endTime = input;
-                    } else if (input > _animation->endTime) {
-                        _animation->endTime = input;
-                    }
-                }
-            }
-
-            animations.emplace_back(std::move(_animation));
+            animations.emplace_back(pvk::gltf::loader::animation::getAnimation(*model, animation, nodeLookup));
         }
 
         return animations;
@@ -303,8 +134,7 @@ namespace pvk {
     }
 
     std::map<uint32_t, std::vector<std::weak_ptr<gltf::Primitive>>>
-    GLTFLoader::initializePrimitiveLookupTable(std::vector<std::shared_ptr<gltf::Node>> &nodes)
-    {
+    GLTFLoader::initializePrimitiveLookupTable(std::vector<std::shared_ptr<gltf::Node>> &nodes) {
         std::map<uint32_t, std::vector<std::weak_ptr<gltf::Primitive>>> primitiveLookup;
 
         for (const auto &node : nodes) {
@@ -369,10 +199,13 @@ namespace pvk {
                 numberOfVertexPerPrimitive.emplace_back(vertexCount);
                 numberOfIndexPerPrimitive.emplace_back(indexCount);
 
-                auto _primitive =
-                        std::make_shared<gltf::Primitive>(currentVertexOffset, currentIndexOffset, vertexCount,
-                                                          indexCount);
-                _primitive->material = loadMaterial(model, graphicsQueue, primitive.material);
+                auto _primitive = std::make_shared<gltf::Primitive>(
+                        currentVertexOffset,
+                        currentIndexOffset,
+                        vertexCount,
+                        indexCount
+                );
+                _primitive->material = gltf::loader::material::getMaterial(*model, primitive.material);
                 meshPrimitives.emplace_back(std::move(_primitive));
 
                 currentVertexOffset += vertexCount;
@@ -411,21 +244,15 @@ namespace pvk {
         return std::async(std::launch::async, [&, model = std::move(model), startingIndex] {
             std::vector<Vertex> vertices;
             vertices.reserve(VERTEX_BATCH_SIZE);
-            const auto indexEnd =
-                    std::min(primitiveIndexPairs.size(), startingIndex + static_cast<size_t>(VERTEX_BATCH_SIZE));
+            const auto indexEnd = std::min(
+                    primitiveIndexPairs.size(),
+                    startingIndex + static_cast<size_t>(VERTEX_BATCH_SIZE)
+            );
 
             for (size_t i = startingIndex; i < indexEnd; i++) {
-                Vertex vertex{};
                 const auto &attribute = primitiveIndexPairs[i];
                 const auto &primitive = primitives[attribute.second];
-
-                vertex.pos = gltf::loader::vertex::getVertexPositionByPrimitive(model, *primitive, attribute.first);
-                vertex.normal = gltf::loader::vertex::getVertexNormalByPrimitive(model, *primitive, attribute.first);
-                vertex.UV0 = gltf::loader::vertex::getVertexUV0ByPrimitive(model, *primitive, attribute.first);
-                vertex.UV1 = gltf::loader::vertex::getVertexUV1ByPrimitive(model, *primitive, attribute.first);
-                vertex.joint = gltf::loader::vertex::getVertexJointByPrimitive(model, *primitive, attribute.first);
-                vertex.weight = gltf::loader::vertex::getVertexWeightByPrimitive(model, *primitive, attribute.first);
-                vertex.color = gltf::loader::vertex::getVertexColorByPrimitive(model, *primitive, attribute.first);
+                const auto vertex = gltf::loader::vertex::generateVertexByPrimitive(model, *primitive, attribute.first);
 
                 vertices.emplace_back(vertex);
             }

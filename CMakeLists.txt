@@ -56,10 +56,12 @@ SET(PUBLIC_HEADERS
         lib/gltf/GLTFSkin.hpp
         lib/gltf/GLTFMaterial.hpp
         lib/pipeline/pipelineParser.hpp
-        lib/gltf/Drawable.cpp
         lib/gltf/Drawable.h
         lib/gltf/loader/GLTFLoaderNode.hpp
-        lib/gltf/loader/GLTFLoaderVertex.hpp)
+        lib/gltf/loader/GLTFLoaderVertex.hpp
+        lib/gltf/loader/GLTFLoaderIndex.hpp
+        lib/gltf/loader/GLTFLoaderAnimation.hpp
+        lib/gltf/loader/GLTFLoaderMaterial.hpp)
 
 SET(SOURCES
         lib/buffer/buffer.cpp
@@ -87,7 +89,10 @@ SET(SOURCES
         external/proxy/gli.h
         external/proxy/tiny_gltf.h
         lib/gltf/Drawable.cpp
-        lib/gltf/Drawable.h)
+        lib/gltf/loader/GLTFLoaderNode.cpp
+        lib/gltf/loader/GLTFLoaderVertex.cpp
+        lib/gltf/loader/GLTFLoaderAnimation.cpp
+        lib/gltf/loader/GLTFLoaderMaterial.cpp)
 
 add_executable(${PROJECT_NAME} main.cpp ${PUBLIC_HEADERS} ${SOURCES})
 add_executable(runTests test/pvk_test.cpp ${PUBLIC_HEADERS} ${SOURCES} test/MockApplication.hpp)

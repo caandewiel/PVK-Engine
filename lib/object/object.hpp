@@ -21,7 +21,7 @@ namespace pvk
 class Object
 {
 public:
-    static auto createFromGLTF(vk::Queue &graphicsQueue, const std::string &filename) -> std::unique_ptr<Object>;
+    static auto createFromGLTF(vk::Queue &&graphicsQueue, const std::string &filename) -> std::unique_ptr<Object>;
 
     ~Object();
 

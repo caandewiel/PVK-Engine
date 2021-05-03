@@ -17,6 +17,7 @@ static vk::UniqueInstance instance{nullptr};
 static vk::UniqueDevice logicalDevice{nullptr};
 static vk::UniqueCommandPool commandPool{nullptr};
 static vk::UniquePipelineCache pipelineCache{nullptr};
+static vk::Queue graphicsQueue{nullptr};
 static std::vector<vk::Image> swapChainImages;
 
 void Context::tearDown()
@@ -25,6 +26,7 @@ void Context::tearDown()
     commandPool.reset();
     logicalDevice.reset();
     instance.reset();
+    graphicsQueue = nullptr;
     physicalDevice = nullptr;
 }
 
@@ -51,6 +53,10 @@ void Context::setPipelineCache(vk::UniquePipelineCache &&_pipelineCache)
 void Context::setInstance(vk::UniqueInstance &&_instance)
 {
     instance = std::move(_instance);
+}
+
+void Context::setGraphicsQueue(vk::Queue &&_queue) {
+    graphicsQueue = _queue;
 }
 
 void Context::setSwapChainImages(std::vector<vk::Image> _swapChainImages)
@@ -81,6 +87,11 @@ vk::PipelineCache Context::getPipelineCache()
 vk::Instance Context::getInstance()
 {
     return instance.get();
+}
+
+vk::Queue Context::getGraphicsQueue()
+{
+    return graphicsQueue;
 }
 
 const std::vector<vk::Image> &Context::getSwapChainImages()

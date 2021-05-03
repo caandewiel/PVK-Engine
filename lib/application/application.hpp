@@ -96,7 +96,6 @@ protected:
     vk::UniqueDebugUtilsMessengerEXT debugMessenger;
     vk::UniqueSurfaceKHR surface;
 
-    vk::Queue graphicsQueue;
     vk::Queue presentQueue;
 
     vk::UniqueSwapchainKHR swapChain;
@@ -381,9 +380,9 @@ protected:
                 pvk::device::logical::create(pvk::Context::getPhysicalDevice(), indices, deviceExtensions,
                                              validationLayers, enableValidationLayers));
 
-        graphicsQueue = pvk::Context::getLogicalDevice().getQueue(indices.graphicsFamily.value(), 0);
         presentQueue = pvk::Context::getLogicalDevice().getQueue(indices.presentFamily.value(), 0);
 
+        pvk::Context::setGraphicsQueue(pvk::Context::getLogicalDevice().getQueue(indices.graphicsFamily.value(), 0));
         pvk::Context::setPipelineCache(
                 pvk::Context::getLogicalDevice().createPipelineCacheUnique(vk::PipelineCacheCreateInfo()));
     }
@@ -733,7 +732,7 @@ protected:
         }
 
         try {
-            graphicsQueue.submit(submitInfo, inFlightFences[currentFrame].get());
+            pvk::Context::getGraphicsQueue().submit(submitInfo, inFlightFences[currentFrame].get());
         } catch (vk::SystemError &error) {
             throw std::runtime_error("failed to submit draw command buffer!");
         }
