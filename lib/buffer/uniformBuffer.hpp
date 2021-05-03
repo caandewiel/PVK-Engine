@@ -8,6 +8,4 @@
 #ifndef uniformBuffer_hpp
 #define uniformBuffer_hpp
 
-#include <stdio.h>
-
 #endif /* uniformBuffer_hpp */

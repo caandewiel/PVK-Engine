@@ -8,7 +8,7 @@
 #ifndef GLTFAnimation_hpp
 #define GLTFAnimation_hpp
 
-#include <cstdio>
+
 #include <vector>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>

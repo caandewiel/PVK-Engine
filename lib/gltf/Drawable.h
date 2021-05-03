@@ -5,7 +5,6 @@
 #ifndef PVK_DRAWABLE_H
 #define PVK_DRAWABLE_H
 
-#include <cstdio>
 #include <map>
 #include <vulkan/vulkan.hpp>
 

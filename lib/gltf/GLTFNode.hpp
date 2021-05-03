@@ -8,7 +8,7 @@
 #ifndef PvkGLTFNode_hpp
 #define PvkGLTFNode_hpp
 
-#include <cstdio>
+
 #include <glm/glm.hpp>
 #include <map>
 #include <vector>
@@ -41,8 +41,8 @@ public:
     std::vector<std::shared_ptr<Primitive>> primitives;
     std::unique_ptr<Mesh> mesh;
     std::weak_ptr<Node> parent;
-    int skinIndex = -1;
-    int nodeIndex = -1;
+    int32_t skinIndex = -1;
+    int32_t nodeIndex = -1;
     std::string name;
 
     struct

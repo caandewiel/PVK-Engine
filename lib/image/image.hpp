@@ -8,7 +8,7 @@
 #ifndef image_hpp
 #define image_hpp
 
-#include <cstdio>
+
 #include <vulkan/vulkan.hpp>
 
 #include "../context/context.hpp"

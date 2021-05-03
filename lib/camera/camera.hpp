@@ -8,7 +8,6 @@
 #ifndef camera_hpp
 #define camera_hpp
 
-#include <stdio.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 

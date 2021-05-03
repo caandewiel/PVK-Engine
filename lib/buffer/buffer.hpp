@@ -10,7 +10,6 @@
 
 #define NUMBER_OF_FACES_FOR_CUBE 6
 
-#include <cstdio>
 #include <utility>
 #include <vulkan/vulkan.hpp>
 #include "proxy/gli.h"

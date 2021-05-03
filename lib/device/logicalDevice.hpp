@@ -8,7 +8,7 @@
 #ifndef logicalDevice_hpp
 #define logicalDevice_hpp
 
-#include <cstdio>
+
 #include <vulkan/vulkan.hpp>
 
 #include "physicalDevice.hpp"

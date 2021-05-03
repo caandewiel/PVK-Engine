@@ -8,7 +8,6 @@
 #ifndef physicalDevice_hpp
 #define physicalDevice_hpp
 
-#include <stdio.h>
 #include <iostream>
 #include <optional>
 #include <set>

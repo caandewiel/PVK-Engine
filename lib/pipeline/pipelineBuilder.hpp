@@ -8,7 +8,7 @@
 #ifndef pipelineBuilder_hpp
 #define pipelineBuilder_hpp
 
-#include <cstdio>
+
 #include <string>
 #include <vulkan/vulkan.hpp>
 

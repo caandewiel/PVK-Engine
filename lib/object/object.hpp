@@ -8,7 +8,7 @@
 #ifndef object_hpp
 #define object_hpp
 
-#include <cstdio>
+
 #include <future>
 #include <glm/glm.hpp>
 #include <string>

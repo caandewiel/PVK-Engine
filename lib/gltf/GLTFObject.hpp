@@ -8,7 +8,7 @@
 #ifndef PvkGLTFObject_hpp
 #define PvkGLTFObject_hpp
 
-#include <cstdio>
+
 #include <vector>
 #include <map>
 #include <vulkan/vulkan.hpp>

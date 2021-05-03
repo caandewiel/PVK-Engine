@@ -1,10 +1,13 @@
 project(pvk)
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.15)
 
 IF(APPLE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DVK_USE_PLATFORM_MACOS_MVK")
     SET(CMAKE_OSX_ARCHITECTURES "arm64" CACHE STRING "Build architectures for Mac OS X" FORCE)
 ENDIF()
+
+#set(CMAKE_CXX_COMPILER /usr/local/Cellar/gcc/10.2.0/bin/gcc-10)
+
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-omit-frame-pointer -Wall -Wextra -Wshadow -Wno-unused-parameter -Werror")
 #set(CMAKE_CXX_FLAGS_RELEASE "-O2")
 set(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -fno-omit-frame-pointer ")
@@ -51,7 +54,12 @@ SET(PUBLIC_HEADERS
         lib/texture/texture.hpp
         lib/util/util.hpp
         lib/gltf/GLTFSkin.hpp
-        lib/gltf/GLTFMaterial.hpp lib/pipeline/pipelineParser.hpp lib/gltf/Drawable.cpp lib/gltf/Drawable.h)
+        lib/gltf/GLTFMaterial.hpp
+        lib/pipeline/pipelineParser.hpp
+        lib/gltf/Drawable.cpp
+        lib/gltf/Drawable.h
+        lib/gltf/loader/GLTFLoaderNode.hpp
+        lib/gltf/loader/GLTFLoaderVertex.hpp)
 
 SET(SOURCES
         lib/buffer/buffer.cpp

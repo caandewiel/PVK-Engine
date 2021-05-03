@@ -159,7 +159,7 @@ protected:
     }
 
     static void handleKeyboardInput(GLFWwindow *window, int key, int scancode, int action, int mods) {
-        auto app = reinterpret_cast<Application *>(glfwGetWindowUserPointer(window));
+        auto *app = reinterpret_cast<Application *>(glfwGetWindowUserPointer(window));
 
         switch (key) {
             case GLFW_KEY_W:
@@ -200,7 +200,7 @@ protected:
     }
 
     static void handleMouseInput(GLFWwindow *window, double mouseX, double mouseY) {
-        auto app = reinterpret_cast<Application *>(glfwGetWindowUserPointer(window));
+        auto *app = reinterpret_cast<Application *>(glfwGetWindowUserPointer(window));
 
         if (app->initializeMouse) {
             app->lastMouseX = (float) mouseX;
@@ -243,7 +243,7 @@ protected:
         double timePrevious = glfwGetTime();
         uint32_t frameCount = 0;
 
-        while (!glfwWindowShouldClose(window)) {
+        while (glfwWindowShouldClose(window) == 0) {
             double timeCurrent = glfwGetTime();
             frameCount++;
 

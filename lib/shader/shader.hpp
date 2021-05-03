@@ -8,7 +8,7 @@
 #ifndef shader_hpp
 #define shader_hpp
 
-#include <cstdio>
+
 #include <string>
 #include <map>
 #include <vulkan/vulkan.hpp>

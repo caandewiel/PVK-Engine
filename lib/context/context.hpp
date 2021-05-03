@@ -8,7 +8,6 @@
 #ifndef context_hpp
 #define context_hpp
 
-#include <cstdio>
 #include <vector>
 #include <vulkan/vulkan.hpp>
 

@@ -8,7 +8,7 @@
 #ifndef vertex_hpp
 #define vertex_hpp
 
-#include <cstdio>
+
 #include <vector>
 #include <glm/glm.hpp>
 #include <vulkan/vulkan.hpp>

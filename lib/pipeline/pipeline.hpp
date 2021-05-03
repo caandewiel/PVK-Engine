@@ -8,7 +8,7 @@
 #ifndef pipeline_hpp
 #define pipeline_hpp
 
-#include <cstdio>
+
 #include <string>
 #include <vector>
 #include <array>

@@ -8,7 +8,7 @@
 #ifndef PvkGLTFPrimitive_hpp
 #define PvkGLTFPrimitive_hpp
 
-#include <cstdio>
+
 #include <glm/glm.hpp>
 #include <map>
 #include <vector>

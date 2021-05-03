@@ -1,5 +1,4 @@
 #include <chrono>
-
 #include "lib/application/application.hpp"
 
 class App : public Application
@@ -57,8 +56,8 @@ private:
 
         // Load model
         auto t1 = std::chrono::high_resolution_clock::now();
-        _fox = pvk::Object::createFromGLTF(graphicsQueue, "/Users/christian/ybot.glb");
-        _runningAnimation = pvk::gltf::animation::createFromGLTF("/Users/christian/animation.glb", *_fox->gltfObject);
+        _fox = pvk::Object::createFromGLTF(graphicsQueue, "/Users/christian/walk.glb");
+//        _runningAnimation = pvk::gltf::animation::createFromGLTF("/Users/christian/animation.glb", *_fox->gltfObject);
         auto t2 = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
         std::cout << "Loading model took " << duration << "ms" << std::endl;
@@ -117,8 +116,8 @@ private:
                 pvk::buffer::update(memory, sizeof(node.bufferObject), &node.bufferObject);
             };
 
-//        _fox->getAnimation(0).update(this->deltaTime);
-        _runningAnimation[0]->update(this->deltaTime);
+        _fox->getAnimation(0).update(this->deltaTime);
+//        _runningAnimation[0]->update(this->deltaTime);
         _fox->gltfObject->updateJoints();
         _fox->updateUniformBufferPerNode(updateInverseBindMatrices, 0, 1);
         _fox->updateUniformBufferPerNode(setUniformBufferObject, 0, 1);

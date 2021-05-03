@@ -8,7 +8,7 @@
 #ifndef Mesh_hpp
 #define Mesh_hpp
 
-#include <cstdio>
+
 #include <vector>
 #include <vulkan/vulkan.hpp>
 

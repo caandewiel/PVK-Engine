@@ -8,7 +8,7 @@
 #ifndef commandBuffer_h
 #define commandBuffer_h
 
-#include <cstdio>
+
 #include <vulkan/vulkan.hpp>
 
 #include "../gltf/GLTFNode.hpp"
