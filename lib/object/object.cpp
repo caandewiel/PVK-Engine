@@ -26,7 +26,7 @@ void Object::updateUniformBuffer(void *data, size_t size, uint32_t descriptorSet
 {
     for (const auto &node : this->gltfObject->getNodes())
     {
-        auto &uniformBuffersMemory = node.second.lock()->getUniformBuffersMemory(descriptorSetIndex, bindingIndex);
+        auto &uniformBuffersMemory = node.second->getUniformBuffersMemory(descriptorSetIndex, bindingIndex);
 
         for (auto &uniformBufferMemory : uniformBuffersMemory)
         {

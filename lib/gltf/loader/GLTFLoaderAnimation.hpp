@@ -13,7 +13,7 @@ namespace pvk::gltf::loader::animation {
     std::unique_ptr<Animation> getAnimation(
             const tinygltf::Model &model,
             const tinygltf::Animation &animation,
-            const boost::container::flat_map<uint32_t, std::weak_ptr<Node>> &nodeLookup
+            const boost::container::flat_map<uint32_t, std::shared_ptr<Node>> &nodeLookup
     );
 }  // namespace pvk::gltf::loader::animation
 

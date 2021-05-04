@@ -37,9 +37,9 @@ namespace {
         return allNodes;
     }
 
-    boost::container::flat_map<uint32_t, std::weak_ptr<pvk::gltf::Node>>
+    boost::container::flat_map<uint32_t, std::shared_ptr<pvk::gltf::Node>>
     initializeNodeLookupTable(std::vector<std::shared_ptr<pvk::gltf::Node>> &nodes) {
-        boost::container::flat_map<uint32_t, std::weak_ptr<pvk::gltf::Node>> nodeLookup{};
+        boost::container::flat_map<uint32_t, std::shared_ptr<pvk::gltf::Node>> nodeLookup{};
 
         for (auto &rootNode : nodes) {
             auto allNodes = getAllNode(rootNode);
@@ -50,6 +50,20 @@ namespace {
         }
 
         return nodeLookup;
+    }
+
+    std::vector<std::unique_ptr<pvk::gltf::Animation>> loadAnimations(
+            const tinygltf::Model &model,
+            const boost::container::flat_map<uint32_t, std::shared_ptr<pvk::gltf::Node>> &nodeLookup
+    ) {
+        std::vector<std::unique_ptr<pvk::gltf::Animation>> animations;
+        animations.reserve(model.animations.size());
+
+        for (const auto &animation : model.animations) {
+            animations.emplace_back(pvk::gltf::loader::animation::getAnimation(model, animation, nodeLookup));
+        }
+
+        return animations;
     }
 }  // namespace
 
@@ -89,7 +103,7 @@ namespace pvk {
         object->nodes = pvk::gltf::loader::node::loadNodes(model, primitiveLookup, graphicsQueue, *object);
         object->setNodeLookup(initializeNodeLookupTable(object->nodes));
         object->primitiveLookup = GLTFLoader::initializePrimitiveLookupTable(object->nodes);
-        object->animations = GLTFLoader::loadAnimations(model, object->getNodes());
+        object->animations = loadAnimations(*model, object->getNodes());
 
         buffer::vertex::create(graphicsQueue, object->vertexBuffer, object->vertexBufferMemory, object->vertices);
 
@@ -102,20 +116,6 @@ namespace pvk {
         std::cout << "[PVK] Loading model took " << duration << "ms" << std::endl;
 
         return object;
-    }
-
-    std::vector<std::unique_ptr<gltf::Animation>> GLTFLoader::loadAnimations(
-            const std::shared_ptr<tinygltf::Model> &model,
-            const boost::container::flat_map<uint32_t, std::weak_ptr<gltf::Node>> &nodeLookup
-    ) {
-        std::vector<std::unique_ptr<gltf::Animation>> animations;
-        animations.reserve(model->animations.size());
-
-        for (auto &animation : model->animations) {
-            animations.emplace_back(pvk::gltf::loader::animation::getAnimation(*model, animation, nodeLookup));
-        }
-
-        return animations;
     }
 
     inline std::vector<std::shared_ptr<gltf::Primitive>> getAllPrimitive(const std::shared_ptr<gltf::Node> &node) {
@@ -179,6 +179,7 @@ namespace pvk {
         primitiveLookup.reserve(model->meshes.size());
 
         for (auto &mesh : model->meshes) {
+            std::cout << "Processing mesh" << std::endl;
             std::vector<std::shared_ptr<gltf::Primitive>> meshPrimitives;
             meshPrimitives.reserve(mesh.primitives.size());
 
@@ -226,8 +227,11 @@ namespace pvk {
         }
 
         for (size_t i = 0; i < primitives.size(); i++) {
+            std::cout << "Adding primitive" << std::endl;
             primitiveIndices.emplace_back(loadIndicesByPrimitive(model, primitives[i], vertexOffsets[i]));
         }
+
+        std::cout << "Done adding primitives" << std::endl;
 
         object.vertices = flatten(std::move(primitiveVertices)).get();
         object.indices = flatten(std::move(primitiveIndices)).get();
@@ -279,9 +283,11 @@ namespace pvk {
         }
     }
 
-    std::future<std::vector<uint32_t>> GLTFLoader::loadIndicesByPrimitive(const std::shared_ptr<tinygltf::Model> &model,
-                                                                          const tinygltf::Primitive *primitive,
-                                                                          uint32_t vertexStart) {
+    std::future<std::vector<uint32_t>> GLTFLoader::loadIndicesByPrimitive(
+            const std::shared_ptr<tinygltf::Model> &model,
+            const tinygltf::Primitive *primitive,
+            uint32_t vertexStart
+    ) {
         return std::async(std::launch::async, [model = model, primitive, vertexStart] {
             std::vector<uint32_t> indices;
 
@@ -318,8 +324,10 @@ namespace pvk {
     }
 
     namespace gltf::animation {
-        std::vector<std::unique_ptr<Animation>> createFromGLTF(const std::string &filename,
-                                                               const Object &object) {
+        std::vector<std::unique_ptr<Animation>> createFromGLTF(
+                const std::string &filename,
+                const Object &object
+        ) {
             tinygltf::TinyGLTF loader;
             auto model = std::make_shared<tinygltf::Model>();
             std::string error;
@@ -337,7 +345,7 @@ namespace pvk {
                 throw std::runtime_error("Could not load glTF animation");
             }
 
-            return GLTFLoader::loadAnimations(model, object.getNodes());
+            return loadAnimations(*model, object.getNodes());
         }
     }  // namespace gltf::animation
 } // namespace pvk

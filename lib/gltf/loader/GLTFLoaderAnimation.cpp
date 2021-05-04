@@ -114,7 +114,7 @@ namespace {
 
     pvk::gltf::Channel getAnimationChannel(
             const tinygltf::AnimationChannel &channel,
-            const boost::container::flat_map<uint32_t, std::weak_ptr<pvk::gltf::Node>> &nodeLookup
+            const boost::container::flat_map<uint32_t, std::shared_ptr<pvk::gltf::Node>> &nodeLookup
     ) {
         pvk::gltf::Channel _channel;
 
@@ -139,7 +139,7 @@ namespace pvk::gltf::loader::animation {
     std::unique_ptr<Animation> getAnimation(
             const tinygltf::Model &model,
             const tinygltf::Animation &animation,
-            const boost::container::flat_map<uint32_t, std::weak_ptr<Node>> &nodeLookup
+            const boost::container::flat_map<uint32_t, std::shared_ptr<Node>> &nodeLookup
     ) {
         auto _animation = std::make_unique<gltf::Animation>();
         _animation->samplers.reserve(animation.samplers.size());

@@ -25,7 +25,7 @@ namespace pvk::gltf {
         Object() = default;;
 
         Object(std::vector<std::shared_ptr<Node>> nodes,
-               boost::container::flat_map<uint32_t, std::weak_ptr<Node>> nodeLookup,
+               boost::container::flat_map<uint32_t, std::shared_ptr<Node>> nodeLookup,
                std::map<uint32_t, std::vector<std::weak_ptr<Primitive>>> primitiveLookup,
                std::vector<std::unique_ptr<Animation>> animations,
                std::vector<std::shared_ptr<Skin>> skins);
@@ -61,7 +61,7 @@ namespace pvk::gltf {
             if (it == nodeLookup.end()) {
                 throw std::runtime_error("Node not found by index.");
             } else {
-                return *it->second.lock();
+                return *it->second;
             }
         }
 
@@ -75,16 +75,16 @@ namespace pvk::gltf {
             return numberOfPrimitives;
         }
 
-        [[nodiscard]] const boost::container::flat_map<uint32_t, std::weak_ptr<Node>> &getNodes() const {
+        [[nodiscard]] const boost::container::flat_map<uint32_t, std::shared_ptr<Node>> &getNodes() const {
             return this->nodeLookup;
         }
 
-        void setNodeLookup(boost::container::flat_map<uint32_t, std::weak_ptr<Node>> newNodeLookup) {
+        void setNodeLookup(boost::container::flat_map<uint32_t, std::shared_ptr<Node>> newNodeLookup) {
             this->nodeLookup = std::move(newNodeLookup);
         }
 
     private:
-        boost::container::flat_map<uint32_t, std::weak_ptr<Node>> nodeLookup;
+        boost::container::flat_map<uint32_t, std::shared_ptr<Node>> nodeLookup;
     };
 }  // namespace pvk::gltf
 

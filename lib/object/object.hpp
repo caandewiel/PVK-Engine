@@ -39,11 +39,11 @@ public:
     {
         for (const auto &node : this->gltfObject->getNodes())
         {
-            auto &uniformBuffersMemory = node.second.lock()->getUniformBuffersMemory(descriptorSetIndex, bindingIndex);
+            auto &uniformBuffersMemory = node.second->getUniformBuffersMemory(descriptorSetIndex, bindingIndex);
 
             for (auto &uniformBufferMemory : uniformBuffersMemory)
             {
-                function(*this->gltfObject, *node.second.lock(), uniformBufferMemory);
+                function(*this->gltfObject, *node.second, uniformBufferMemory);
             }
         }
     }
@@ -56,7 +56,7 @@ public:
     {
         for (const auto &node : this->gltfObject->getNodes())
         {
-            for (auto &primitive : node.second.lock()->primitives) {
+            for (auto &primitive : node.second->primitives) {
                 auto &uniformBuffersMemory = primitive->getUniformBuffersMemory(descriptorSetIndex, bindingIndex);
 
                 for (auto &uniformBufferMemory : uniformBuffersMemory)

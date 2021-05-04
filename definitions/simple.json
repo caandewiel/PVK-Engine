@@ -1,0 +1,7 @@
+{
+  "cullingMode": "BACK",
+  "enableDepth": true,
+  "vertexShader": "/Users/christian/PVK-Engine/shaders/simple.vert.spv",
+  "fragmentShader": "/Users/christian/PVK-Engine/shaders/simple.frag.spv",
+  "descriptorSets": []
+}

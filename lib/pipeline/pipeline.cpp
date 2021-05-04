@@ -68,10 +68,10 @@ void Pipeline::initializeDescriptorSets(std::shared_ptr<Object> &object)
         case DescriptorSetVisibility::NODE: {
             for (const auto &node : object->gltfObject->getNodes())
             {
-                node.second.lock()->getDescriptorSets()[i].resize(descriptorSetLayouts.size());
+                node.second->getDescriptorSets()[i].resize(descriptorSetLayouts.size());
                 vk::DescriptorSetAllocateInfo descriptorSetAllocateInfo = {
                     this->descriptorPools[i].get(), numberOfSwapChainImages, layouts.data()};
-                node.second.lock()->initializeDescriptorSets(descriptorSetAllocateInfo, i);
+                node.second->initializeDescriptorSets(descriptorSetAllocateInfo, i);
             }
             break;
         }
@@ -103,7 +103,7 @@ std::vector<vk::WriteDescriptorSet> Pipeline::getWriteDescriptorSets()
     {
         for (const auto &node : object->gltfObject->getNodes())
         {
-            writeDescriptorSets = initializeDescriptorSet(writeDescriptorSets, *node.second.lock());
+            writeDescriptorSets = initializeDescriptorSet(writeDescriptorSets, *node.second);
         }
 
         for (auto &primitivesByNode : object->gltfObject->primitiveLookup) {

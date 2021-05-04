@@ -1,10 +1,10 @@
 project(pvk)
 cmake_minimum_required(VERSION 3.15)
 
-IF(APPLE)
+IF (APPLE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DVK_USE_PLATFORM_MACOS_MVK")
     SET(CMAKE_OSX_ARCHITECTURES "arm64" CACHE STRING "Build architectures for Mac OS X" FORCE)
-ENDIF()
+ENDIF ()
 
 #set(CMAKE_CXX_COMPILER /usr/local/Cellar/gcc/10.2.0/bin/gcc-10)
 
@@ -61,7 +61,9 @@ SET(PUBLIC_HEADERS
         lib/gltf/loader/GLTFLoaderVertex.hpp
         lib/gltf/loader/GLTFLoaderIndex.hpp
         lib/gltf/loader/GLTFLoaderAnimation.hpp
-        lib/gltf/loader/GLTFLoaderMaterial.hpp)
+        lib/gltf/loader/GLTFLoaderMaterial.hpp
+        lib/gltf/loader/GLTFLoaderPrimitive.hpp
+        lib/object/gameObject.hpp)
 
 SET(SOURCES
         lib/buffer/buffer.cpp
@@ -92,7 +94,9 @@ SET(SOURCES
         lib/gltf/loader/GLTFLoaderNode.cpp
         lib/gltf/loader/GLTFLoaderVertex.cpp
         lib/gltf/loader/GLTFLoaderAnimation.cpp
-        lib/gltf/loader/GLTFLoaderMaterial.cpp)
+        lib/gltf/loader/GLTFLoaderMaterial.cpp
+        lib/gltf/loader/GLTFLoaderPrimitive.cpp
+        lib/object/gameObject.cpp)
 
 add_executable(${PROJECT_NAME} main.cpp ${PUBLIC_HEADERS} ${SOURCES})
 add_executable(runTests test/pvk_test.cpp ${PUBLIC_HEADERS} ${SOURCES} test/MockApplication.hpp)
@@ -105,7 +109,7 @@ if (VULKAN_FOUND)
     include_directories(${Vulkan_INCLUDE_DIRS})
     include_directories(${Boost_INCLUDE_DIR})
     include_directories(${GTEST_INCLUDE_DIRS})
-    target_link_libraries (${PROJECT_NAME} ${Vulkan_LIBRARIES} ${BOOST_LIBRARIES} glfw)
+    target_link_libraries(${PROJECT_NAME} ${Vulkan_LIBRARIES} ${BOOST_LIBRARIES} glfw)
 endif (VULKAN_FOUND)
 
 target_link_libraries(runTests /usr/local/lib/libgtest.a /usr/local/lib/libgtest_main.a ${Vulkan_LIBRARIES} ${BOOST_LIBRARIES} glfw)

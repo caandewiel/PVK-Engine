@@ -4,9 +4,6 @@
 
 #include "GLTFLoaderMaterial.hpp"
 
-#include "../../texture/texture.hpp"
-#include "../../buffer/buffer.hpp"
-
 namespace {
     std::unique_ptr<pvk::Texture> loadTexture(
             const tinygltf::Model &model,
@@ -46,4 +43,4 @@ namespace pvk::gltf::loader::material {
 
         return _material;
     }
-}
+}  // namespace pvk::gltf::loader::material

@@ -13,6 +13,7 @@
 
 #include "../gltf/GLTFNode.hpp"
 #include "../pipeline/pipeline.hpp"
+#include "../object/gameObject.hpp"
 
 namespace pvk
 {
@@ -21,6 +22,14 @@ class CommandBuffer
   public:
     CommandBuffer(vk::CommandBuffer *commandBuffer, uint32_t swapchainIndex)
         : commandBuffer(commandBuffer), swapchainIndex(swapchainIndex){};
+
+    void drawObject(const Pipeline &pipeline, const pvk::object::GameObject &object)
+    {
+        this->commandBuffer->bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline.getVulkanPipeline().get());
+        this->commandBuffer->bindVertexBuffers(0, object.getMesh().getVertexBuffer(), {0});
+        this->commandBuffer->bindIndexBuffer(object.getMesh().getIndexBuffer(), 0, vk::IndexType::eUint32);
+        this->commandBuffer->drawIndexed(object.getMesh().getIndices().size(), 1, 0, 0, 0);
+    }
 
     void drawNode(const Pipeline &pipeline, const gltf::Object &object, const gltf::Node &node)
     {

@@ -11,7 +11,7 @@
 
 namespace pvk::gltf {
     Object::Object(std::vector<std::shared_ptr<Node>> nodes,
-                   boost::container::flat_map<uint32_t, std::weak_ptr<Node>> nodeLookup,
+                   boost::container::flat_map<uint32_t, std::shared_ptr<Node>> nodeLookup,
                    std::map<uint32_t, std::vector<std::weak_ptr<Primitive>>> primitiveLookup,
                    std::vector<std::unique_ptr<Animation>> animations,
                    std::vector<std::shared_ptr<Skin>> skins) {
@@ -33,7 +33,7 @@ namespace pvk::gltf {
 
         for (auto &node : this->nodeLookup) {
             vk::DescriptorSetAllocateInfo descriptorSetAllocateInfo = {descriptorPool, numberOfSwapChainImages, layouts.data()};
-            node.second.lock()->initializeDescriptorSets(descriptorSetAllocateInfo, descriptorSetIndex);
+            node.second->initializeDescriptorSets(descriptorSetAllocateInfo, descriptorSetIndex);
         }
     }
 

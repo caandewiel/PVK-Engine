@@ -12,7 +12,7 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define EXTENSION_GLB ".glb"
 
-#define VERTEX_BATCH_SIZE 1024
+#define VERTEX_BATCH_SIZE 8000
 
 #include <cmath>
 
@@ -58,10 +58,6 @@ namespace pvk {
 
         static auto initializePrimitiveLookupTable(std::vector<std::shared_ptr<gltf::Node>> &nodes)
         -> std::map<uint32_t, std::vector<std::weak_ptr<gltf::Primitive>>>;
-
-        static auto loadAnimations(const std::shared_ptr<tinygltf::Model> &model,
-                                   const boost::container::flat_map<uint32_t, std::weak_ptr<gltf::Node>> &nodeLookup)
-        -> std::vector<std::unique_ptr<gltf::Animation>>;
     };
 
     namespace gltf::animation {

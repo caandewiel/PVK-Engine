@@ -58,6 +58,8 @@ namespace pvk {
 //        ) -> void;
 
         namespace vertex {
+            std::pair<vk::UniqueBuffer, vk::UniqueDeviceMemory> create(const std::vector<Vertex> &vertices);
+
             void create(vk::Queue &graphicsQueue,
                         vk::UniqueBuffer &buffer,
                         vk::UniqueDeviceMemory &bufferMemory,
@@ -65,6 +67,8 @@ namespace pvk {
         }
         
         namespace index {
+            std::pair<vk::UniqueBuffer, vk::UniqueDeviceMemory> create(const std::vector<uint32_t> &indices);
+
             void create(vk::Queue &graphicsQueue,
                         vk::UniqueBuffer &buffer,
                         vk::UniqueDeviceMemory &bufferMemory,
